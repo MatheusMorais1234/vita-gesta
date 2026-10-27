@@ -1,0 +1,16 @@
+{
+  "name": "VitaGesta: sua rede de apoio na gestação",
+  "short_name": "VitaGesta",
+  "description": "IMC gestacional, acompanhamento do peso, plano alimentar e consultas com nutricionistas.",
+  "lang": "pt-BR",
+  "start_url": "./#app",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#FFECED",
+  "theme_color": "#FFECED",
+  "icons": [
+    { "src": "img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

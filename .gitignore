@@ -1,0 +1,12 @@
+# Credenciais do banco e token de restauração: só no servidor
+api/config.php
+
+# Notas de trabalho com links privados do grupo (Canva, Google Docs) e rascunhos do Canva delas
+CLAUDE.md
+canva-prints/
+
+# Configuração local do Claude Code
+.claude/
+
+.DS_Store
+Thumbs.db
