@@ -1,0 +1,1742 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VitaGesta: sua rede de apoio na gestação</title>
+<meta name="description" content="Calcule seu IMC gestacional, veja se o seu ganho de peso está adequado e encontre nutricionistas perto de você.">
+<link rel="icon" href="img/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="img/icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#FFECED">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="VitaGesta">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;600;700&family=Fraunces:opsz,wght@9..144,400..600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #FFECED;
+    --white: #FFFFFF;
+    --ink: #231C1F;
+    --muted: #6B5F64;
+    --line: #F0D2D6;
+    --berry: #B84C65;
+    --berry-dark: #963A51;
+    --berry-soft: #FAD9E0;
+    --lilac: #E6BDF3;
+    --lilac-soft: #F5E2FB;
+    --sky: #C6E6FF;
+    --sky-soft: #E2F1FF;
+    --sky-dark: #2F6FA8;
+    --charcoal: #5E575B;
+    --app-bg: #FCF6F7;
+    --display: "Fraunces", Georgia, serif;
+    --text: "Atkinson Hyperlegible Next", "Segoe UI", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 400 1.0625rem/1.6 var(--text); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--display); font-weight: 450; line-height: 1.1; margin: 0 0 .45em; letter-spacing: -.01em; font-variation-settings: "SOFT" 30; }
+  h1 { font-size: clamp(2.4rem, 5.4vw, 4rem); }
+  h2 { font-size: clamp(1.7rem, 3.2vw, 2.5rem); }
+  h3 { font: 600 1.12rem/1.3 var(--text); letter-spacing: 0; }
+  p { margin: 0 0 1em; }
+  a { color: var(--berry); }
+  img { display: block; max-width: 100%; }
+  :focus-visible { outline: 3px solid var(--berry); outline-offset: 2px; }
+  [hidden] { display: none !important; }
+  .wrap { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+  .muted { color: var(--muted); }
+  .lead { font-size: 1.15rem; color: var(--muted); max-width: 36em; }
+
+  /* Modos: site público, tela de login e área logada */
+  body[data-mode="app"] #site { display: none; }
+  body:not([data-mode="app"]) #app { display: none; }
+  body[data-mode="auth"] #site > header, body[data-mode="auth"] #site > footer,
+  body[data-mode="live"] #site > header, body[data-mode="live"] #site > footer { display: none; }
+
+  /* Painel ao vivo (telão da apresentação) */
+  .live { min-height: 100vh; padding: 28px clamp(20px, 3vw, 48px) 32px; display: flex; flex-direction: column; gap: 20px; }
+  .live-top { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .live-top img { height: 64px; width: auto; }
+  .live-top h1 { font-size: clamp(1.8rem, 3vw, 2.6rem); margin: 0; }
+  .live-top .pulse { margin-left: auto; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: .95rem; }
+  .live-top .pulse::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: #2E9E5B; animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .3; } }
+  .live-grid { flex: 1; display: grid; gap: 18px; grid-template-columns: minmax(260px, .9fr) 1.1fr 1.1fr; grid-template-areas: "qr total status" "qr tri cat" "feed feed feed"; }
+  .live-card { background: var(--white); border-radius: 18px; padding: 24px 26px; }
+  .live-card h2 { font: 600 1.15rem var(--text); margin-bottom: 18px; }
+  .live-qr { grid-area: qr; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 14px; }
+  .live-qr img { width: min(100%, 300px); height: auto; }
+  .live-qr p { margin: 0; font: 450 1.6rem/1.2 var(--display); }
+  .live-qr small { color: var(--muted); font-size: 1rem; }
+  .live-total { grid-area: total; display: flex; flex-direction: column; justify-content: center; }
+  .live-total small { color: var(--muted); font-size: 1.05rem; }
+  .live-total .num { font: 500 clamp(4rem, 8vw, 6.5rem)/1 var(--display); margin: 6px 0 14px; transition: color .3s; }
+  .live-total .num.bump { color: var(--berry); }
+  .live-total .sub { display: flex; gap: 8px 22px; flex-wrap: wrap; color: var(--muted); }
+  .live-total .sub b { color: var(--ink); }
+  #lv-status-card { grid-area: status; } #lv-tri-card { grid-area: tri; } #lv-cat-card { grid-area: cat; }
+  .hbars { display: grid; gap: 14px; }
+  .hbar { display: grid; grid-template-columns: 10.5em 1fr 4.6em; gap: 12px; align-items: center; }
+  .hbar span { font-weight: 600; }
+  .hbar .track { height: 26px; background: var(--app-bg); border-radius: 4px; overflow: hidden; }
+  .hbar .fill { height: 100%; width: 0; border-radius: 4px; transition: width .6s ease; }
+  .hbar output { text-align: right; font-variant-numeric: tabular-nums; }
+  .hbar output small { color: var(--muted); }
+  .live-feed { grid-area: feed; }
+  .live-feed ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+  .live-feed li { background: var(--app-bg); border-radius: 12px; padding: 10px 14px; display: flex; gap: 10px; align-items: center; }
+  .live-feed li.new { animation: fade-in .4s ease both; box-shadow: inset 0 0 0 2px var(--lilac); }
+  .live-feed li i { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .live-feed li small { display: block; color: var(--muted); }
+  .live-empty { color: var(--muted); }
+
+  /* Relatório para o pré-natal */
+  .report { background: var(--white); border: 1px solid var(--line); border-radius: 16px; padding: 32px 36px; }
+  .report-head { display: flex; justify-content: space-between; gap: 20px; align-items: center; border-bottom: 2px solid var(--berry); padding-bottom: 16px; margin-bottom: 20px; }
+  .report-head img { height: 64px; width: auto; }
+  .report-head h2 { font-size: 1.6rem; margin: 0; }
+  .report h3 { font: 600 1.05rem var(--text); margin: 26px 0 10px; }
+  .report .pdata { margin-top: 0; }
+  .notes { border-top: 1px solid var(--line); height: 36px; }
+  .premium-note { display: inline-block; font-size: .85rem; background: var(--lilac-soft); color: #5C3A69; padding: 3px 10px; border-radius: 999px; margin-top: 6px; }
+
+  /* Cabeçalho */
+  header { position: sticky; top: 0; z-index: 10; background: rgba(255,236,237,.95); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  .nav { display: flex; align-items: center; height: 80px; gap: 28px; }
+  .logo { flex: none; }
+  .logo img { height: 58px; width: auto; }
+  .nav-links { display: flex; align-items: center; gap: 2px; margin-right: auto; }
+  .nav-links a { white-space: nowrap; text-decoration: none; color: var(--ink); padding: 8px 12px; border-radius: 8px; font-size: .98rem; }
+  .nav-links a:hover { background: rgba(255,255,255,.75); }
+  .nav-links a.active { color: var(--berry-dark); font-weight: 600; }
+  .nav-links .mobile-only { display: none; }
+  .nav-cta { display: flex; align-items: center; gap: 8px; flex: none; }
+  .nav-enter { color: var(--ink); font-weight: 600; text-decoration: none; padding: 9px 14px; border-radius: 10px; }
+  .nav-enter:hover { background: rgba(255,255,255,.75); }
+  .nav-cta .pill { background: var(--lilac); color: var(--ink); font-weight: 600; text-decoration: none; padding: 10px 18px; border-radius: 999px; white-space: nowrap; }
+  .nav-cta .pill:hover, .nav-cta .pill.active { box-shadow: inset 0 0 0 2px var(--berry); }
+  .menu-btn { display: none; width: 44px; height: 44px; border: 0; border-radius: 10px; background: var(--white); color: var(--ink); cursor: pointer; place-items: center; }
+
+  /* Botões */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 12px; border: 0; cursor: pointer; font: 600 1rem var(--text); padding: 14px 26px; border-radius: 12px; text-decoration: none; transition: background-color .15s; }
+  .btn:disabled { opacity: .6; cursor: progress; }
+  .btn-primary { background: var(--charcoal); color: #fff; }
+  .btn-primary:hover { background: #48424A; }
+  .btn-primary .go { width: 26px; height: 26px; border: 1.5px solid rgba(255,255,255,.75); border-radius: 50%; display: grid; place-items: center; flex: none; }
+  .btn-berry { background: var(--berry); color: #fff; }
+  .btn-berry:hover { background: var(--berry-dark); }
+  .btn-ghost { background: var(--white); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line); }
+  .btn-ghost:hover { box-shadow: inset 0 0 0 1.5px var(--berry); }
+  .btn-sm { padding: 9px 16px; font-size: .94rem; border-radius: 10px; }
+  .btn-wide { width: 100%; }
+  .back { display: inline-flex; align-items: center; gap: 6px; color: var(--berry); font-size: .95rem; text-decoration: none; margin-bottom: 18px; background: none; border: 0; padding: 0; cursor: pointer; font-family: var(--text); }
+  .back::before { content: ""; border: 6px solid transparent; border-right: 8px solid var(--berry); border-left: 0; }
+
+  section.page { display: none; }
+  section.page.active { display: block; animation: fade-in .28s ease both; }
+
+  /* Carregamento: abertura do site, barra no topo e esqueleto das páginas da área logada */
+  #splash { position: fixed; inset: 0; z-index: 100; background: var(--paper); display: grid; place-items: center; transition: opacity .4s ease, visibility .4s; }
+  #splash.out { opacity: 0; visibility: hidden; }
+  .splash-box { display: grid; justify-items: center; gap: 14px; }
+  .splash-box img { height: 92px; width: auto; }
+  .splash-box svg { width: 180px; height: 64px; overflow: visible; }
+  .splash-box p { margin: 0; color: var(--muted); font-size: .95rem; }
+  .sp-line { stroke-dasharray: 200; stroke-dashoffset: 200; animation: draw 1.6s cubic-bezier(.45, 0, .55, 1) infinite; }
+  @keyframes draw { 70%, 100% { stroke-dashoffset: 0; } }
+  #topbar { position: fixed; top: 0; left: 0; z-index: 90; height: 3px; width: 0; background: var(--berry); opacity: 0; pointer-events: none; }
+  #topbar.on { opacity: 1; width: 80%; transition: width 3s cubic-bezier(.1, .7, .2, 1); }
+  #topbar.done { opacity: 0; width: 100%; transition: width .2s ease, opacity .35s ease .2s; }
+  .sk { background: linear-gradient(90deg, #F6E4E8 25%, #FDF3F5 50%, #F6E4E8 75%); background-size: 300% 100%; animation: shimmer 1.3s linear infinite; border-radius: 10px; }
+  .sk-line { height: 14px; margin: 8px 0; }
+  @keyframes shimmer { from { background-position: 100% 0; } to { background-position: -200% 0; } }
+  .fade-in { animation: fade-in .28s ease both; }
+  @keyframes fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  .page-pad { padding-block: 48px 88px; }
+  .panel { background: var(--white); border-radius: 18px; padding: 40px; }
+
+  /* Início */
+  .hero { position: relative; display: grid; grid-template-columns: 1.15fr .85fr; gap: 40px; align-items: center; padding-block: 56px 40px; }
+  .hero::before { content: ""; position: absolute; z-index: -1; left: min(-24px, calc((1140px - 100vw) / 2 - 24px)); top: 28px; width: min(420px, 60vw); height: 300px; background: var(--sky); border-radius: 0 999px 999px 0; }
+  .hero h1 { border-left: 4px solid var(--berry); padding-left: 18px; max-width: 12em; }
+  .hero .lead { color: var(--ink); text-align: justify; hyphens: auto; }
+  .hero .lead b { color: var(--berry); font-weight: 600; }
+  .hero-photo { margin: 0 calc(min(0px, (1140px - 100vw) / 2) - 24px) 0 0; height: 420px; border-radius: 999px 0 0 999px; background: #EDE9E6 url(img/gestante.jpg) center 32% / cover no-repeat; }
+
+  .how { padding-block: 24px 72px; }
+  .how-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 24px 0 28px; list-style: none; padding: 0; }
+  .how-grid li { background: var(--white); border-radius: 14px; padding: 20px 22px; }
+  .how-grid h3 { font: 500 1.4rem var(--display); margin-bottom: 4px; }
+  .how-grid p { margin: 0; color: var(--muted); }
+
+  .ranges { background: var(--white); padding: 64px 0; }
+  .ranges-grid { display: grid; grid-template-columns: .8fr 1.2fr; gap: 56px; align-items: center; }
+  .scale { display: grid; gap: 18px; }
+  .scale-row { display: grid; grid-template-columns: 9.5em 1fr; gap: 16px; align-items: center; }
+  .scale-row span { font-weight: 600; }
+  .scale-row small { display: block; font-weight: 400; color: var(--muted); font-size: .86rem; }
+  .bar { position: relative; height: 34px; background: repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 10%); border-radius: 6px; }
+  .bar i { position: absolute; top: 0; bottom: 0; background: var(--sky); border-radius: 999px; display: flex; align-items: center; justify-content: center; font: 600 .9rem var(--text); font-style: normal; color: #1F4E78; white-space: nowrap; }
+  .scale-axis { display: grid; grid-template-columns: 9.5em 1fr; gap: 16px; font-size: .8rem; color: var(--muted); margin-top: 8px; }
+  .scale-axis div { display: flex; justify-content: space-between; }
+  .source { font-size: .88rem; color: var(--muted); margin-top: 12px; }
+
+  .areas { padding: 72px 0 8px; }
+  .areas-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 24px; }
+  .area { background: var(--white); border-radius: 18px; padding: 30px; display: flex; flex-direction: column; }
+  .area h3 { font: 500 1.6rem var(--display); margin-bottom: 8px; }
+  .area ul { margin: 6px 0 22px; padding-left: 1.1em; color: var(--muted); flex: 1; }
+  .area li { margin-bottom: 4px; }
+  .area li::marker { color: var(--berry); }
+
+  .faq { padding: 80px 0; }
+  .faq-grid { display: grid; grid-template-columns: .7fr 1.3fr; gap: 48px; align-items: start; }
+  .faq-list { display: grid; gap: 14px; }
+  .faq details { background: var(--white); border-radius: 14px; padding: 18px 22px; }
+  .faq details:nth-child(3n+1) { background: var(--berry-soft); }
+  .faq details:nth-child(3n+2) { background: var(--lilac-soft); }
+  .faq details:nth-child(3n) { background: var(--sky-soft); }
+  .faq summary { cursor: pointer; font-weight: 600; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: "+"; font: 400 1.4rem/1 var(--display); color: var(--berry); }
+  .faq details[open] summary::after { content: "−"; }
+  .faq details p { margin: 10px 0 0; color: var(--ink); }
+
+  /* Calculadora */
+  .calc { display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: start; }
+  .title-dot { display: flex; align-items: center; gap: 14px; margin: 0 0 8px; }
+  .title-dot::before { content: ""; width: .62em; height: .62em; border-radius: 50%; background: var(--berry); flex: none; }
+  .form-grid { display: grid; gap: 18px; margin: 28px 0 22px; max-width: 460px; }
+  .field label { display: block; font-weight: 600; font-size: .98rem; margin-bottom: 6px; }
+  .field .hint { font-weight: 400; color: var(--muted); }
+  .field input, .field select, textarea { width: 100%; font: inherit; padding: 13px 14px; border-radius: 10px; border: 1.5px solid #3F383C; background: var(--white); color: var(--ink); }
+  .field input::placeholder, textarea::placeholder { color: #9A8F94; }
+  .field input:focus, .field select:focus, textarea:focus { outline: none; border-color: var(--berry); box-shadow: 0 0 0 3px var(--berry-soft); }
+  .error { color: #A3271B; font-size: .95rem; min-height: 1.5em; margin-bottom: 10px; }
+  .calc-side { display: grid; grid-template-rows: 1fr auto; gap: 16px; align-self: stretch; }
+  .calc-photo { border-radius: 18px; min-height: 260px; background: url(img/gestante-poltrona.jpg) center 55% / cover no-repeat; }
+  .disclaimer { font-size: .9rem; color: var(--muted); text-align: center; }
+
+  /* Resultado */
+  .result-grid { display: grid; grid-template-columns: .8fr 1.2fr; gap: 20px; margin-bottom: 20px; }
+  .box { background: var(--white); border-radius: 16px; padding: 24px 26px; }
+  .imc-box { display: flex; justify-content: space-between; gap: 16px; align-items: center; }
+  .imc-box small { color: var(--muted); display: block; }
+  .imc-value { font: 450 3.4rem/1 var(--display); margin: 8px 0; }
+  .imc-box svg { flex: none; }
+  .scenarios h2 { font: 600 1.15rem var(--text); margin-bottom: 14px; }
+  .scenario-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .scenario-row div { border-left: 3px solid var(--sky); padding: 10px 14px; border-radius: 0 10px 10px 0; }
+  .scenario-row div.current { background: var(--sky); border-left-color: var(--sky-dark); }
+  .scenario-row.priority div.current { background: var(--berry-soft); border-left-color: var(--berry); }
+  .scenario-row b { display: block; }
+  .scenario-row span { color: var(--muted); font-size: .92rem; }
+  .scenario-row .current span { color: var(--ink); font-weight: 600; }
+  .facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 18px; }
+  .facts dt { color: var(--muted); font-size: .88rem; }
+  .facts dd { margin: 0; font-weight: 700; font-size: 1.15rem; }
+  .next-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  .next-grid .box { border-left: 3px solid var(--sky); }
+  .next-grid p { margin: 0; }
+  .signup { display: grid; grid-template-columns: .9fr 1.1fr; gap: 32px; align-items: center; border: 2px solid var(--lilac); margin-bottom: 20px; }
+  .signup h2 { font-size: 1.7rem; }
+  .signup form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
+  .signup .full { grid-column: 1 / -1; }
+  .chart { margin-bottom: 28px; }
+  .chart h2 { font: 600 1.15rem var(--text); }
+  .chart svg { width: 100%; height: auto; display: block; margin-top: 8px; }
+  .chart svg text { font-family: var(--text); }
+  .legend { display: flex; gap: 22px; font-size: .9rem; color: var(--muted); margin-top: 10px; flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 8px; }
+  .center { text-align: center; }
+  .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; }
+
+  /* Saúde e Nutrição */
+  .guide { display: grid; grid-template-columns: 1fr 360px; gap: 48px; align-items: start; }
+  .guide-photo { border-radius: 18px; aspect-ratio: 3 / 4; object-fit: cover; width: 100%; height: auto; position: sticky; top: 108px; }
+  .tips { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .tips li { background: var(--white); border-radius: 14px; padding: 20px 22px; }
+  .tips h3 { margin-bottom: 4px; }
+  .tips p { margin: 0; color: var(--muted); }
+
+  /* Nutricionistas */
+  .tag-title { display: flex; align-items: center; gap: 22px; margin: 0; }
+  .tag-title::before { content: ""; width: 64px; height: 64px; flex: none; background: var(--berry); clip-path: polygon(0 0, 62% 0, 100% 50%, 62% 100%, 0 100%); margin-left: -24px; border-radius: 0 8px 8px 0; }
+  .list-head { display: flex; gap: 24px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+  .seg { display: flex; gap: 4px; background: var(--white); padding: 4px; border-radius: 10px; flex-wrap: wrap; }
+  .seg button { font: 600 .95rem var(--text); border: 0; background: none; padding: 9px 14px; border-radius: 7px; cursor: pointer; color: var(--muted); }
+  .seg button[aria-pressed="true"] { background: var(--lilac); color: var(--ink); }
+  .notice { margin: 20px 0 8px; color: var(--muted); max-width: 44em; }
+  .nutri-list { list-style: none; padding: 0; margin: 20px 0 0; display: grid; gap: 12px; }
+  .nutri { display: grid; grid-template-columns: 60px 1fr auto; gap: 20px; align-items: center; padding: 20px 24px; background: var(--white); border-radius: 16px; }
+  .avatar { width: 60px; height: 60px; border-radius: 50%; display: grid; place-items: center; font: 500 1.25rem var(--display); color: var(--berry-dark); background: var(--berry-soft); flex: none; }
+  .nutri h3 { margin: 0 0 2px; font-size: 1.15rem; }
+  .meta { color: var(--muted); font-size: .95rem; }
+  .rating { color: var(--berry-dark); font-weight: 700; }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .tag { display: inline-block; font-size: .84rem; background: var(--lilac-soft); color: #5C3A69; padding: 2px 10px; border-radius: 999px; white-space: nowrap; }
+  .tag.priority { background: var(--berry); color: #fff; font-weight: 600; }
+  .tag.ok { background: var(--sky-soft); color: #1F4E78; }
+  .tag.warn { background: var(--berry-soft); color: var(--berry-dark); }
+  .nutri-side { text-align: right; }
+  .price { font-weight: 700; font-size: 1.15rem; margin-bottom: 8px; }
+  .price span { font-weight: 400; font-size: .9rem; color: var(--muted); }
+
+  /* Planos */
+  .plans-group { margin-top: 48px; }
+  .plans-group > h2 { font-size: 1.8rem; }
+  .plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 18px; margin-top: 18px; }
+  .plan { background: var(--white); border-radius: 18px; padding: 28px; display: flex; flex-direction: column; }
+  .plan.featured { box-shadow: inset 0 0 0 2px var(--berry); }
+  .plan h3 { font: 500 1.6rem var(--display); margin-bottom: 2px; }
+  .plan .for { color: var(--muted); font-size: .95rem; margin: 0; }
+  .plan .value { font: 500 2.5rem var(--display); margin: 18px 0 0; }
+  .plan .value small { font: 400 1rem var(--text); color: var(--muted); }
+  .plan ul { padding: 0; list-style: none; margin: 18px 0 26px; flex: 1; }
+  .plan li { padding: 9px 0 9px 20px; border-top: 1px solid var(--line); font-size: .98rem; position: relative; }
+  .plan li::before { content: ""; position: absolute; left: 2px; top: 1.05em; width: 7px; height: 7px; border-radius: 50%; background: var(--berry); }
+
+  /* Tela de login */
+  .auth { display: grid; grid-template-columns: 1fr 1fr; min-height: 100vh; }
+  .auth-side { background: var(--berry); color: #fff; padding: 40px 56px; display: flex; flex-direction: column; gap: 28px; }
+  .auth-side .logo-chip { background: var(--paper); border-radius: 14px; padding: 6px 10px; width: max-content; }
+  .auth-side .logo-chip img { height: 60px; }
+  .auth-side h2 { font-size: clamp(2rem, 3.4vw, 2.8rem); color: #fff; max-width: 12em; margin: 0; }
+  .auth-side ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; color: #FCE6EB; }
+  .auth-side li { display: flex; gap: 10px; }
+  .auth-side li::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--lilac); margin-top: .6em; flex: none; }
+  .auth-photo { flex: 1; min-height: 200px; border-radius: 18px; background: url(img/gestante-poltrona.jpg) center 55% / cover no-repeat; }
+  .auth-main { display: flex; flex-direction: column; justify-content: center; padding: 40px clamp(24px, 6vw, 96px); background: var(--white); }
+  .auth-box { width: 100%; max-width: 420px; }
+  .auth-box h1 { font-size: 2.4rem; margin-bottom: 6px; }
+  .auth-box .seg { background: var(--app-bg); margin: 22px 0 6px; }
+  .auth-box .seg button { flex: 1; }
+  .auth-box form { display: grid; gap: 16px; margin-top: 18px; }
+  .auth-help { font-size: .95rem; color: var(--muted); margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
+
+  /* Área logada (estilo SaaS) */
+  #app { display: grid; grid-template-columns: 252px 1fr; min-height: 100vh; background: var(--app-bg); }
+  .side { position: sticky; top: 0; height: 100vh; background: var(--white); border-right: 1px solid var(--line); padding: 20px 16px; display: flex; flex-direction: column; gap: 6px; }
+  .side .logo img { height: 56px; margin: 0 0 18px 6px; }
+  .side-label { font-size: .82rem; color: var(--muted); padding: 0 12px; margin: 6px 0 2px; }
+  .side nav { display: grid; gap: 2px; }
+  .side nav a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; color: var(--ink); text-decoration: none; font-size: .98rem; }
+  .side nav a svg { flex: none; color: var(--muted); }
+  .side nav a:hover { background: var(--app-bg); }
+  .side nav a.active { background: var(--lilac-soft); font-weight: 600; }
+  .side nav a.active svg { color: var(--berry); }
+  .side nav a .count { margin-left: auto; background: var(--berry); color: #fff; font-size: .78rem; font-weight: 700; border-radius: 999px; padding: 0 8px; }
+  .me { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 12px; background: var(--app-bg); }
+  .me .avatar { width: 40px; height: 40px; font-size: .95rem; }
+  .me b { display: block; font-size: .95rem; line-height: 1.25; }
+  .me small { color: var(--muted); font-size: .82rem; }
+  .me button { margin-left: auto; background: none; border: 0; color: var(--muted); cursor: pointer; padding: 6px; border-radius: 8px; }
+  .me button:hover { color: var(--berry); background: var(--white); }
+  .app-main { padding: 32px clamp(20px, 3vw, 44px) 64px; max-width: 1240px; width: 100%; }
+  .app-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+  .app-top h1 { font-size: clamp(1.8rem, 3vw, 2.3rem); margin: 0; }
+  .app-top p { margin: 4px 0 0; color: var(--muted); }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  .kpi { background: var(--white); border-radius: 14px; padding: 18px 20px; border: 1px solid var(--line); }
+  .kpi small { color: var(--muted); font-size: .9rem; }
+  .kpi b { display: block; font: 500 2.1rem/1.15 var(--display); margin-top: 4px; }
+  .kpi.alert b { color: var(--berry); }
+  .card { background: var(--white); border-radius: 16px; padding: 22px 24px; border: 1px solid var(--line); }
+  .card > h2 { font: 600 1.1rem var(--text); margin-bottom: 14px; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .card > h2 a { font-size: .92rem; font-weight: 600; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-main { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; align-items: start; }
+  .stack { display: grid; gap: 20px; }
+  .rows { list-style: none; padding: 0; margin: 0; }
+  .rows li { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); }
+  .rows li:first-child { border-top: 0; padding-top: 0; }
+  .rows .grow { flex: 1; min-width: 0; }
+  .rows b { display: block; }
+  .rows small { color: var(--muted); }
+  .empty { color: var(--muted); padding: 8px 0; }
+  .date-chip { flex: none; width: 56px; text-align: center; border-radius: 10px; background: var(--sky-soft); padding: 6px 0; line-height: 1.1; }
+  .date-chip b { font: 500 1.4rem var(--display); }
+  .date-chip small { display: block; font-size: .74rem; color: #1F4E78; text-transform: lowercase; }
+  .verdict { border-left: 4px solid var(--sky-dark); background: var(--sky-soft); padding: 16px 20px; border-radius: 0 12px 12px 0; margin-bottom: 20px; }
+  .verdict.priority { border-color: var(--berry); background: var(--berry-soft); }
+  .verdict b { display: block; font-size: 1.08rem; }
+  .verdict p { margin: 2px 0 0; }
+
+  .pat-layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: start; }
+  .pat-list { display: grid; gap: 2px; background: var(--white); border: 1px solid var(--line); border-radius: 16px; padding: 6px; max-height: calc(100vh - 210px); overflow: auto; position: sticky; top: 24px; }
+  .patient { text-align: left; font: inherit; color: inherit; background: none; border: 0; border-radius: 10px; padding: 11px 13px; cursor: pointer; text-decoration: none; display: block; }
+  .patient:hover { background: var(--app-bg); }
+  .patient.active { background: var(--lilac-soft); }
+  .patient b { display: block; }
+  .patient small { color: var(--muted); }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; vertical-align: 1px; }
+  .dot.ok { background: var(--sky-dark); }
+  .dot.warn { background: var(--berry); }
+  .pdata { display: grid; grid-template-columns: repeat(4, 1fr); margin: 18px 0 8px; border-top: 1px solid var(--line); }
+  .pdata div { padding: 12px 12px 12px 0; border-bottom: 1px solid var(--line); }
+  .pdata small { color: var(--muted); display: block; font-size: .84rem; }
+  .pdata b { font-size: 1.05rem; }
+  .meal { display: grid; grid-template-columns: 160px 1fr; gap: 14px; align-items: start; margin-bottom: 12px; }
+  .meal label, .meal .when { font-weight: 600; padding-top: 11px; }
+  .meal small { display: block; font-weight: 400; color: var(--muted); }
+  .meal p { margin: 0; padding: 11px 14px; background: var(--app-bg); border-radius: 10px; }
+  textarea { min-height: 64px; resize: vertical; border-color: var(--line); }
+  table.weights { width: 100%; border-collapse: collapse; font-size: .97rem; }
+  table.weights th { text-align: left; font-weight: 600; color: var(--muted); font-size: .86rem; padding: 0 8px 8px 0; }
+  table.weights td { padding: 10px 8px 10px 0; border-top: 1px solid var(--line); }
+  .inline-form { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+  .inline-form .field { flex: 1; min-width: 140px; }
+  .req { display: grid; grid-template-columns: 1fr auto; gap: 12px 18px; align-items: center; padding: 16px 0; border-top: 1px solid var(--line); }
+  .req:first-child { border-top: 0; padding-top: 0; }
+  .req .inline-form .field { min-width: 210px; }
+
+  footer { border-top: 1px solid var(--line); padding: 36px 0 44px; color: var(--muted); font-size: .9rem; }
+  .foot { display: grid; grid-template-columns: auto 1.2fr 1fr; gap: 32px; align-items: start; }
+  .foot img { height: 56px; width: auto; }
+  footer p { margin: 0 0 .5em; }
+  footer a { color: inherit; }
+
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translate(-50%, 140%); background: var(--ink); color: #fff; padding: 13px 22px; border-radius: 12px; transition: transform .25s, visibility .25s; visibility: hidden; z-index: 50; max-width: calc(100vw - 32px); }
+  .toast.show { transform: translate(-50%, 0); visibility: visible; }
+
+  @media (max-width: 1100px) {
+    .kpis { grid-template-columns: 1fr 1fr; }
+    .grid-main, .grid-2 { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 1080px) {
+    .nav { height: 68px; gap: 10px; }
+    .logo { margin-right: auto; }
+    .logo img { height: 46px; }
+    .menu-btn { display: grid; }
+    .nav-enter { display: none; }
+    .nav-cta .pill { padding: 9px 14px; font-size: .95rem; }
+    .nav-links { display: none; position: absolute; top: 100%; left: 0; right: 0; flex-direction: column; align-items: stretch; gap: 0; margin: 0; padding: 4px 24px 16px; background: var(--white); border-bottom: 1px solid var(--line); box-shadow: 0 16px 28px rgba(35,28,31,.1); }
+    header.open .nav-links { display: flex; }
+    .nav-links a { padding: 14px 4px; border-radius: 0; border-bottom: 1px solid var(--line); font-size: 1.05rem; }
+    .nav-links a:last-child { border-bottom: 0; }
+    .nav-links .mobile-only { display: block; font-weight: 600; color: var(--berry-dark); }
+  }
+  @media (max-width: 960px) {
+    #app { grid-template-columns: minmax(0, 1fr); }
+    .side, .app-main { min-width: 0; }
+    .side { position: sticky; z-index: 5; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 8px 12px 4px; gap: 4px 8px; border-right: 0; border-bottom: 1px solid var(--line); }
+    .side .logo img { height: 40px; margin: 0; }
+    .side-label { display: none; }
+    .side nav { order: 3; width: 100%; display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+    .side nav a { white-space: nowrap; padding: 8px 10px; }
+    .me { order: 2; margin: 0 0 0 auto; padding: 4px 4px 4px 12px; }
+    .me .avatar { display: none; }
+    .pat-layout { grid-template-columns: 1fr; }
+    .pat-list { position: static; max-height: 280px; }
+  }
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; padding-top: 32px; }
+    .hero-photo { height: 300px; margin-right: -24px; }
+    .hero .lead { text-align: left; }
+    .how-grid, .ranges-grid, .faq-grid, .guide, .calc, .foot, .result-grid, .next-grid, .areas-grid, .signup, .auth { grid-template-columns: 1fr; }
+    .ranges-grid, .faq-grid { gap: 28px; }
+    .tips { grid-template-columns: 1fr; }
+    .guide-photo { display: none; }
+    .panel { padding: 24px 20px; }
+    .pdata { grid-template-columns: 1fr 1fr; }
+    .meal { grid-template-columns: 1fr; gap: 6px; }
+    .meal label, .meal .when { padding-top: 0; }
+    .auth-side { padding: 28px 24px; }
+    .auth-side ul, .auth-photo { display: none; }
+  }
+  @media (max-width: 600px) {
+    .scale-row, .scale-axis { grid-template-columns: 1fr; gap: 6px; }
+    .scale-axis > span { display: none; }
+    .scenario-row { grid-template-columns: 1fr; }
+    .facts, .kpis { grid-template-columns: 1fr 1fr; }
+    .kpi { padding: 14px 16px; }
+    .kpi b { font-size: 1.5rem; }
+    .signup form { grid-template-columns: 1fr; }
+    .imc-box svg { display: none; }
+    .nutri { grid-template-columns: 48px 1fr; gap: 14px; padding: 18px; }
+    .avatar { width: 48px; height: 48px; font-size: 1rem; }
+    .nutri-side { grid-column: 1 / -1; text-align: left; display: flex; justify-content: space-between; align-items: center; }
+    .tag-title::before { width: 40px; height: 44px; }
+    .req { grid-template-columns: 1fr; }
+    .card { padding: 18px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .toast, .btn, #splash, #topbar.on, #topbar.done { transition: none; }
+    section.page.active, .fade-in, .sk { animation: none; }
+    .sp-line { animation: none; stroke-dashoffset: 0; }
+    .sp-dot { display: none; }
+  }
+  @media (max-width: 1000px) {
+    .live-grid { grid-template-columns: 1fr; grid-template-areas: "total" "qr" "status" "tri" "cat" "feed"; }
+  }
+  @media print {
+    header, footer, .no-print, .side, .pat-list, #topbar, .toast { display: none !important; }
+    body, #app { background: #fff; }
+    #app, .pat-layout { display: block; }
+    .app-main { padding: 0; }
+    .card, .report { border: 0; padding: 0; }
+    .report h3, .report table, .report .meal, .report .chart { break-inside: avoid; }
+    .report h3 { break-after: avoid; }
+    .fade-in, section.page.active { animation: none !important; }
+  }
+</style>
+</head>
+<body data-mode="site">
+
+<div id="splash" role="status" aria-label="Carregando o VitaGesta">
+  <div class="splash-box">
+    <img src="img/logo.png" alt="" width="152" height="96">
+    <svg viewBox="0 0 180 64" aria-hidden="true">
+      <path d="M6 58 C40 56 70 50 96 42 S150 20 174 8 L174 26 C150 34 122 46 96 50 S40 60 6 60 Z" fill="#C6E6FF"/>
+      <path id="sp-path" class="sp-line" pathLength="200" d="M6 59 C40 56 70 48 96 44 S150 26 174 17" fill="none" stroke="#B84C65" stroke-width="3" stroke-linecap="round"/>
+      <circle class="sp-dot" r="5.5" fill="#B84C65" stroke="#fff" stroke-width="2">
+        <animateMotion dur="1.6s" repeatCount="indefinite" keyPoints="0;1;1" keyTimes="0;.7;1" calcMode="spline" keySplines=".45 0 .55 1;0 0 1 1"><mpath href="#sp-path"/></animateMotion>
+      </circle>
+    </svg>
+    <p>Preparando tudo para você</p>
+  </div>
+</div>
+<div id="topbar" aria-hidden="true"></div>
+
+<div id="site">
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="#inicio"><img src="img/logo.png" alt="VitaGesta, página inicial" width="152" height="96"></a>
+    <nav class="nav-links" id="nav-links" aria-label="Principal">
+      <a href="#saude">Saúde e Nutrição</a>
+      <a href="#nutricionistas">Profissionais perto de você</a>
+      <a href="#entrar/nutri">Profissional da Saúde</a>
+      <a href="#planos">Planos</a>
+      <a href="#entrar" class="mobile-only js-enter">Entrar</a>
+      <a href="#" class="mobile-only js-install" hidden onclick="instalar(event)">Instalar o app</a>
+    </nav>
+    <div class="nav-cta">
+      <a href="#entrar" class="nav-enter js-enter">Entrar</a>
+      <a href="#calculadora" class="pill">Sou gestante</a>
+      <button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="nav-links" aria-label="Abrir menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- INÍCIO -->
+  <section class="page" id="inicio">
+    <div class="wrap">
+      <div class="hero">
+        <div>
+          <h1>Sua rede de apoio especializada na gestação.</h1>
+          <p class="lead">Sabemos que encontrar profissionais de confiança e organizar as demandas da gravidez pode ser desgastante. O <b>VitaGesta</b> centraliza a triagem do seu momento gestacional, calcula indicadores essenciais e conecta você diretamente a especialistas qualificadas na sua região ou no formato online.</p>
+        </div>
+        <div class="hero-photo" role="img" aria-label="Gestante sorrindo com as mãos na barriga"></div>
+      </div>
+
+      <div class="how">
+        <h2>Como funciona?</h2>
+        <ol class="how-grid">
+          <li><h3>1. Calcule</h3><p>Informe seu peso atual, altura e semana da gestação.</p></li>
+          <li><h3>2. Entenda</h3><p>Veja seu resultado e as recomendações para o seu momento.</p></li>
+          <li><h3>3. Cuide-se</h3><p>Escolha o profissional mais próximo de você.</p></li>
+        </ol>
+        <button class="btn btn-primary btn-wide" onclick="go('calculadora')"><span class="go" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="#fff" stroke-width="1.6"/></svg></span>Calcular meu IMC gestacional</button>
+      </div>
+    </div>
+
+    <div class="ranges">
+      <div class="wrap ranges-grid">
+        <div>
+          <h2>Cada corpo tem a sua faixa de ganho</h2>
+          <p class="muted">Quem começa a gestação abaixo do peso precisa ganhar mais. Quem começa acima precisa ganhar menos. A referência é o IMC de antes de engravidar.</p>
+          <p class="source">Ganho total recomendado até o parto, em kg. Fonte: Institute of Medicine (2009).</p>
+        </div>
+        <div>
+          <div class="scale" id="scale"></div>
+          <div class="scale-axis"><span></span><div><span>0</span><span>5</span><span>10</span><span>15</span><span>20 kg</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="areas">
+      <div class="wrap">
+        <h2>Uma área para cada uma</h2>
+        <div class="areas-grid">
+          <div class="area">
+            <h3>Para a gestante</h3>
+            <ul>
+              <li>Registre o seu peso a cada consulta e veja a sua curva</li>
+              <li>Receba o plano alimentar da sua nutricionista</li>
+              <li>Peça e acompanhe as suas consultas</li>
+            </ul>
+            <div class="actions" style="margin-top:0"><button class="btn btn-berry" onclick="go('calculadora')">Começar pelo IMC</button><button class="btn btn-ghost" onclick="go('entrar')">Já tenho conta</button></div>
+          </div>
+          <div class="area">
+            <h3>Para a nutricionista</h3>
+            <ul>
+              <li>Pacientes organizadas por prioridade</li>
+              <li>Histórico de peso e plano alimentar por refeição</li>
+              <li>Agenda com os pedidos de consulta</li>
+            </ul>
+            <div class="actions" style="margin-top:0"><button class="btn btn-primary" onclick="go('entrar/nutri')">Entrar no painel</button><button class="btn btn-ghost" onclick="go('planos')">Ver planos</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="faq">
+      <div class="wrap faq-grid">
+        <h2>Perguntas frequentes</h2>
+        <div class="faq-list" id="faq-home"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CALCULADORA -->
+  <section class="page" id="calculadora">
+    <div class="wrap page-pad">
+      <div class="panel">
+        <button class="back" onclick="history.length > 1 ? history.back() : go('inicio')">Voltar</button>
+        <div class="calc">
+          <div>
+            <h1 class="title-dot" style="font-size:clamp(2.2rem,4.4vw,3.2rem)">IMC gestacional</h1>
+            <p class="lead" style="color:var(--ink)">Preencha os dados para saber seu resultado do IMC gestacional atual.</p>
+            <form id="calc-form" novalidate>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="f-nome">Seu nome <span class="hint">(opcional)</span></label>
+                  <input id="f-nome" type="text" placeholder="ex: Ana Paula" autocomplete="given-name">
+                </div>
+                <div class="field">
+                  <label for="f-altura">Altura (cm)</label>
+                  <input id="f-altura" type="number" inputmode="decimal" placeholder="ex: 162">
+                </div>
+                <div class="field">
+                  <label for="f-pre">Peso antes da gestação (kg)</label>
+                  <input id="f-pre" type="number" inputmode="decimal" step="0.1" placeholder="ex: 60">
+                </div>
+                <div class="field">
+                  <label for="f-atual">Peso atual (kg)</label>
+                  <input id="f-atual" type="number" inputmode="decimal" step="0.1" placeholder="ex: 66">
+                </div>
+                <div class="field">
+                  <label for="f-semana">Semana gestacional</label>
+                  <input id="f-semana" type="number" inputmode="numeric" placeholder="ex: 20">
+                </div>
+              </div>
+              <div class="error" id="calc-error" role="alert"></div>
+              <button class="btn btn-primary" type="submit" style="min-width:240px">Ver meu resultado</button>
+            </form>
+          </div>
+          <div class="calc-side">
+            <div class="calc-photo" role="img" aria-label="Gestante sentada em uma poltrona de vime com as mãos na barriga"></div>
+            <p class="disclaimer">Esta ferramenta é educativa e não substitui o acompanhamento profissional. O cálculo segue as recomendações do Institute of Medicine (IOM, 2009).</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESULTADO -->
+  <section class="page" id="resultado">
+    <div class="wrap page-pad" id="result-content"></div>
+  </section>
+
+  <!-- SAÚDE E NUTRIÇÃO -->
+  <section class="page" id="saude">
+    <div class="wrap page-pad">
+      <h1 class="title-dot" style="font-size:clamp(2.2rem,4.4vw,3.2rem)">Saúde e Nutrição</h1>
+      <p class="lead">Orientações para cada fase da gestação, com base em Lobo et al. (2019) e Sousa et al. (2013). Elas valem para quem está com o ganho de peso adequado. Se o seu resultado deu abaixo ou acima do esperado, procure um nutricionista.</p>
+      <div class="guide" style="margin-top:32px">
+        <ul class="tips" id="tips"></ul>
+        <img class="guide-photo" src="img/prato.jpg" alt="Prato com arroz e feijão, abacate, banana-da-terra e vinagrete" loading="lazy" width="900" height="1350">
+      </div>
+      <div class="faq" style="padding-bottom:0">
+        <div class="faq-grid">
+          <h2>Perguntas frequentes</h2>
+          <div class="faq-list" id="faq-saude"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NUTRICIONISTAS -->
+  <section class="page" id="nutricionistas">
+    <div class="wrap page-pad">
+      <div class="list-head">
+        <h1 class="tag-title" style="font-size:clamp(2rem,4.4vw,3rem)">Profissionais perto de você</h1>
+        <div class="seg" role="group" aria-label="Ordenar lista" id="sort">
+          <button type="button" data-sort="dist" aria-pressed="true">Mais próximos</button>
+          <button type="button" data-sort="nota" aria-pressed="false">Melhor avaliados</button>
+        </div>
+      </div>
+      <p class="notice">Goiânia, GO. A ordem considera só a distância e a avaliação das pacientes. Nenhum profissional paga para aparecer primeiro.</p>
+      <ul class="nutri-list" id="nutri-list"></ul>
+    </div>
+  </section>
+
+  <!-- PLANOS -->
+  <section class="page" id="planos">
+    <div class="wrap page-pad">
+      <h1 class="title-dot" style="font-size:clamp(2rem,4.4vw,3rem)">Planos</h1>
+      <p class="lead">As informações são sempre gratuitas para a gestante. Os planos pagos trazem ferramentas extras e não mudam a posição de ninguém na busca.</p>
+
+      <div class="plans-group">
+        <h2>Para gestantes</h2>
+        <div class="plans">
+          <div class="plan">
+            <h3>Essencial</h3>
+            <p class="for">Para fazer o cálculo e encontrar ajuda</p>
+            <div class="value">Grátis</div>
+            <ul>
+              <li>IMC gestacional e curva de ganho de peso</li>
+              <li>Conta com registro de pesagens</li>
+              <li>Pedido de consulta e plano alimentar</li>
+            </ul>
+            <button class="btn btn-ghost" onclick="go('calculadora')">Calcular meu IMC</button>
+          </div>
+          <div class="plan featured">
+            <h3>Premium</h3>
+            <p class="for">Para acompanhar a gestação inteira</p>
+            <div class="value">R$ 14,90 <small>por mês</small></div>
+            <ul>
+              <li>Tudo do Essencial</li>
+              <li>Lembretes de consultas e suplementos</li>
+              <li>Receitas para cada trimestre</li>
+              <li>Relatório para levar ao pré-natal</li>
+            </ul>
+            <button class="btn btn-berry" onclick="toast('Protótipo: o pagamento não está disponível')">Assinar o Premium</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="plans-group">
+        <h2>Para nutricionistas</h2>
+        <div class="plans">
+          <div class="plan">
+            <h3>Básico</h3>
+            <p class="for">Para ser encontrado</p>
+            <div class="value">Grátis</div>
+            <ul>
+              <li>Perfil profissional</li>
+              <li>Aparece na busca por proximidade</li>
+              <li>Recebe pedidos de consulta</li>
+            </ul>
+            <button class="btn btn-ghost" onclick="toast('Protótipo: o cadastro não está disponível')">Criar perfil</button>
+          </div>
+          <div class="plan featured">
+            <h3>Pro</h3>
+            <p class="for">Para atender pela plataforma</p>
+            <div class="value">R$ 79 <small>por mês</small></div>
+            <ul>
+              <li>Tudo do Básico</li>
+              <li>Painel de pacientes com histórico de peso</li>
+              <li>Montador de plano alimentar</li>
+              <li>Agenda de consultas</li>
+            </ul>
+            <button class="btn btn-berry" onclick="toast('Protótipo: o pagamento não está disponível')">Assinar o Pro</button>
+          </div>
+          <div class="plan">
+            <h3>Clínica</h3>
+            <p class="for">Para equipes</p>
+            <div class="value">R$ 199 <small>por mês</small></div>
+            <ul>
+              <li>Tudo do Pro</li>
+              <li>Até 5 profissionais</li>
+              <li>Relatórios da clínica</li>
+            </ul>
+            <button class="btn btn-ghost" onclick="toast('Protótipo: o contato não está disponível')">Falar com a equipe</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PAINEL AO VIVO (telão) -->
+  <section class="page" id="ao-vivo">
+    <div class="live">
+      <div class="live-top">
+        <img src="img/logo.png" alt="VitaGesta" width="152" height="96">
+        <h1>Ao vivo: quem já fez o IMC gestacional</h1>
+        <span class="pulse" id="lv-pulse">Atualiza sozinho</span>
+      </div>
+      <div class="live-grid">
+        <div class="live-card live-qr">
+          <img src="img/qrcode.png" alt="QR code para a calculadora do VitaGesta" width="1000" height="1000">
+          <p>Aponte a câmera e faça o seu IMC gestacional</p>
+          <small>vitagesta.matheusmorais.com</small>
+        </div>
+        <div class="live-card live-total">
+          <small>Cálculos feitos pelo público</small>
+          <div class="num" id="lv-total">0</div>
+          <div class="sub"><span><b id="lv-contas">0</b> contas criadas</span><span><b id="lv-consultas">0</b> pedidos de consulta</span><span>semana média: <b id="lv-semana">sem dados</b></span></div>
+        </div>
+        <div class="live-card" id="lv-status-card"><h2>Como está o ganho de peso</h2><div class="hbars" id="lv-status"></div></div>
+        <div class="live-card" id="lv-tri-card"><h2>Em que trimestre estão</h2><div class="hbars" id="lv-tri"></div></div>
+        <div class="live-card" id="lv-cat-card"><h2>IMC antes da gestação</h2><div class="hbars" id="lv-cat"></div></div>
+        <div class="live-card live-feed"><h2>Últimos cálculos</h2><ul id="lv-feed"></ul></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ENTRAR -->
+  <section class="page" id="entrar">
+    <div class="auth">
+      <div class="auth-side">
+        <a class="logo-chip" href="#inicio"><img src="img/logo.png" alt="VitaGesta, voltar ao site" width="152" height="96"></a>
+        <h2>Sua rede de apoio especializada na gestação.</h2>
+        <ul>
+          <li>A gestante acompanha o peso e recebe o plano alimentar</li>
+          <li>A nutricionista organiza as pacientes por prioridade</li>
+          <li>Os pedidos de consulta chegam direto na agenda</li>
+        </ul>
+        <div class="auth-photo" role="img" aria-label="Gestante sentada em uma poltrona de vime"></div>
+      </div>
+      <div class="auth-main">
+        <div class="auth-box">
+          <a class="back" href="#inicio">Voltar ao site</a>
+          <h1>Entrar</h1>
+          <p class="muted" id="auth-sub"></p>
+          <div class="seg" role="tablist" aria-label="Tipo de conta">
+            <button type="button" role="tab" data-tipo="gestante" aria-pressed="true">Sou gestante</button>
+            <button type="button" role="tab" data-tipo="nutri" aria-pressed="false">Sou nutricionista</button>
+          </div>
+          <form id="login-form" novalidate>
+            <div class="field"><label for="login-usuario" id="login-label">E-mail</label><input id="login-usuario" type="text" autocapitalize="none" spellcheck="false"></div>
+            <div class="field"><label for="login-senha">Senha</label><input id="login-senha" type="password" autocomplete="current-password"></div>
+            <div class="error" role="alert" id="login-error" style="margin:0"></div>
+            <button class="btn btn-primary btn-wide" type="submit">Entrar</button>
+          </form>
+          <p class="auth-help" id="auth-help"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <img src="img/logo.png" alt="VitaGesta" width="152" height="96" loading="lazy">
+    <div>
+      <p>Protótipo acadêmico do projeto Materno Infantil, disciplina de Economia e Marketing, Facunicamps Centro Universitário.</p>
+      <p>Profª Patrícia Cristina Barreto Lobo. Discentes: Ábida Acsa, Leticia Rodrigues, Maryanna de Morais e Thaís Rodrigues.</p>
+    </div>
+    <div>
+      <p>Referências: Institute of Medicine (2009); Lobo et al. (2019); Sousa et al. (2013).</p>
+      <p>Nomes, distâncias, avaliações e preços são fictícios. Fotos do <a href="https://unsplash.com" rel="noopener">Unsplash</a>, por Jeferson Santu, Jonathan Caliguire e K15 Photos.</p>
+    </div>
+  </div>
+</footer>
+</div>
+
+<!-- ÁREA LOGADA -->
+<div id="app">
+  <aside class="side">
+    <a class="logo" href="#inicio"><img src="img/logo.png" alt="VitaGesta, voltar ao site" width="152" height="96"></a>
+    <p class="side-label" id="side-label"></p>
+    <nav id="side-nav" aria-label="Área logada"></nav>
+    <div class="me">
+      <span class="avatar" id="me-avatar"></span>
+      <div><b id="me-nome"></b><small id="me-tipo"></small></div>
+      <button type="button" onclick="logout()" title="Sair" aria-label="Sair"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4"/></svg></button>
+    </div>
+  </aside>
+  <main class="app-main" id="app-main"></main>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+  // Recomendações de ganho de peso do IOM (2009) por IMC pré-gestacional
+  const IOM = {
+    baixo:     { label: 'Baixo peso', imc: 'IMC abaixo de 18,5', weekly: [0.44, 0.58], total: [12.5, 18] },
+    adequado:  { label: 'Peso adequado', imc: 'IMC de 18,5 a 24,9', weekly: [0.35, 0.50], total: [11.5, 16] },
+    sobrepeso: { label: 'Sobrepeso', imc: 'IMC de 25 a 29,9', weekly: [0.23, 0.33], total: [7, 11.5] },
+    obesidade: { label: 'Obesidade', imc: 'IMC de 30 ou mais', weekly: [0.17, 0.27], total: [5, 9] }
+  };
+
+  // usuario = login da nutricionista no painel (tabela nutricionistas)
+  const NUTRIS = [
+    { usuario: 'maryanna', nome: 'Dra. Maryanna de Morais', crn: 'CRN-1 12345', bairro: 'Setor Bueno', dist: 1.2, nota: 4.9, aval: 87, preco: 180, tags: ['Gestação', 'Amamentação'] },
+    { usuario: 'leticia', nome: 'Dra. Leticia Rodrigues', crn: 'CRN-1 23456', bairro: 'Setor Marista', dist: 2.4, nota: 4.8, aval: 64, preco: 200, tags: ['Gestação', 'Diabetes gestacional'] },
+    { usuario: 'thais', nome: 'Dra. Thaís Rodrigues', crn: 'CRN-1 34567', bairro: 'Jardim Goiás', dist: 3.1, nota: 4.7, aval: 41, preco: 160, tags: ['Gestação', 'Obesidade', 'Online'] },
+    { usuario: 'abida', nome: 'Dra. Ábida Acsa', crn: 'CRN-1 45678', bairro: 'Setor Oeste', dist: 3.8, nota: 5.0, aval: 29, preco: 220, tags: ['Gestação', 'Baixo peso', 'Vegetarianas'] }
+  ];
+
+  const TIPS = [
+    ['Fracione as refeições', 'Faça de 5 a 6 refeições menores ao longo do dia. Isso ajuda com enjoos e azia.'],
+    ['Prefira comida de verdade', 'Monte o prato com alimentos in natura: arroz, feijão, legumes, verduras, frutas, ovos e carnes magras.'],
+    ['Ferro e ácido fólico', 'Feijão, folhas verde-escuras e carnes ajudam. A suplementação deve seguir a orientação do seu pré-natal.'],
+    ['Cuidado com alimentos crus', 'Evite carnes, ovos e peixes crus ou malpassados. Higienize bem frutas e verduras.'],
+    ['Limite a cafeína', 'Até cerca de 200 mg por dia, o equivalente a 1 ou 2 xícaras de café coado.'],
+    ['Álcool: nenhuma quantidade', 'Não existe dose segura de bebida alcoólica durante a gestação.']
+  ];
+
+  const FAQ = [
+    ['Quanto peso devo ganhar na gravidez?', 'Depende do seu IMC antes de engravidar. Pelo Institute of Medicine (2009), o ganho total recomendado é de 12,5 a 18 kg para baixo peso, 11,5 a 16 kg para peso adequado, 7 a 11,5 kg para sobrepeso e 5 a 9 kg para obesidade.'],
+    ['Perdi peso no começo da gestação. É normal?', 'Nos três primeiros meses, os enjoos podem causar uma pequena perda de peso. A calculadora considera adequada uma perda de até 1 kg nessa fase. Conte sempre ao seu pré-natal.'],
+    ['Preciso comer por dois?', 'Não. A necessidade de energia aumenta pouco e principalmente a partir do segundo trimestre. O que mais importa é a qualidade do que você come.'],
+    ['Como os profissionais são ordenados?', 'Só pela distância e pela avaliação das pacientes. Nenhum profissional paga para aparecer primeiro.'],
+    ['O VitaGesta substitui o pré-natal?', 'Não. A ferramenta é educativa e ajuda você a entender o seu momento. As decisões sobre a sua saúde devem ser tomadas com o seu médico e o seu nutricionista.']
+  ];
+
+  const MEALS = [
+    ['cafe', 'Café da manhã', '7h'],
+    ['lanche1', 'Lanche da manhã', '10h'],
+    ['almoco', 'Almoço', '12h30'],
+    ['lanche2', 'Lanche da tarde', '16h'],
+    ['jantar', 'Jantar', '19h30'],
+    ['ceia', 'Ceia', '21h30']
+  ];
+  const TEMPLATE = {
+    cafe: '1 fatia de pão integral com ovo mexido + 1 fruta (mamão ou banana) + café com leite',
+    lanche1: '1 iogurte natural com aveia',
+    almoco: 'Arroz, feijão, salada de folhas verde-escuras, legumes cozidos e 1 porção de carne magra ou frango',
+    lanche2: '1 fruta + 1 punhado de castanhas',
+    jantar: 'Omelete com legumes ou sopa de legumes com frango desfiado',
+    ceia: '1 copo de leite ou chá de camomila'
+  };
+
+  const API = 'api/';
+  const JSON_HEADERS = { 'Content-Type': 'application/json' };
+  const $ = (s) => document.querySelector(s);
+  const fmt = (n, d = 1) => n.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const kg = (n) => fmt(n).replace(/,0$/, '');
+
+  function bmiCategory(bmi) {
+    if (bmi < 18.5) return 'baixo';
+    if (bmi < 25) return 'adequado';
+    if (bmi < 30) return 'sobrepeso';
+    return 'obesidade';
+  }
+
+  // Faixa de ganho esperado até a semana: 0,5–2 kg no 1º trimestre, depois ganho semanal do IOM
+  function expectedRange(cat, week) {
+    const [wMin, wMax] = IOM[cat].weekly;
+    if (week <= 13) return [0.5 * week / 13, 2 * week / 13];
+    return [0.5 + (week - 13) * wMin, 2 + (week - 13) * wMax];
+  }
+
+  function evaluate(p) {
+    const bmi = p.pre / Math.pow(p.altura / 100, 2);
+    const cat = bmiCategory(bmi);
+    const gain = p.atual - p.pre;
+    const [min, max] = expectedRange(cat, p.semana);
+    // No 1º trimestre, uma pequena perda de peso por enjoos é comum
+    const lower = p.semana <= 13 ? Math.min(min, -1) : min;
+    const status = gain < lower ? 'low' : gain > max ? 'high' : 'ok';
+    return { bmi, cat, gain, min, max, status };
+  }
+
+  const STATUS_TEXT = { ok: 'ganho adequado', low: 'ganho abaixo do esperado', high: 'ganho acima do esperado' };
+
+  /* ---------- Sessão ---------- */
+  let me = null;
+
+  async function loadMe() {
+    try {
+      const r = await fetch(API + 'login.php');
+      me = r.ok ? await r.json() : null;
+    } catch { me = null; }
+  }
+
+  // Chamada à API: 401 manda de volta para o login; erros viram exceção com a mensagem do servidor
+  async function api(path, opts) {
+    loading(true);
+    const r = await fetch(API + path, opts).finally(() => loading(false));
+    const d = await r.json().catch(() => ({}));
+    if (r.status === 401) { me = null; go('entrar'); throw new Error('Sua sessão terminou. Entre de novo.'); }
+    if (!r.ok) throw new Error(d.erro || 'O servidor não respondeu. Tente de novo.');
+    return d;
+  }
+  const post = (body) => ({ method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(body) });
+
+  async function logout() {
+    await fetch(API + 'login.php', { method: 'DELETE' }).catch(() => null);
+    me = null;
+    toast('Você saiu da sua conta');
+    go('entrar');
+  }
+
+  /* ---------- Roteamento ---------- */
+  function go(page) { location.hash === '#' + page ? render() : location.hash = page; }
+
+  async function render() {
+    const [page, sub, arg] = (location.hash || '#inicio').slice(1).split('/');
+    document.querySelectorAll('.js-enter').forEach(a => { a.textContent = me ? 'Minha área' : 'Entrar'; a.setAttribute('href', me ? '#app' : '#entrar'); });
+    setMenu(false);
+    if (page === 'painel') return go('entrar/nutri');
+    if (page === 'app') {
+      if (!me) return go('entrar');
+      document.body.dataset.mode = 'app';
+      window.scrollTo(0, 0);
+      return renderApp(sub, arg);
+    }
+    if (page === 'entrar' && me) return go('app');
+    const target = document.getElementById(page) && page !== 'app' ? page : 'inicio';
+    document.body.dataset.mode = target === 'entrar' ? 'auth' : target === 'ao-vivo' ? 'live' : 'site';
+    target === 'ao-vivo' ? startLive() : stopLive();
+    const navTarget = target === 'resultado' ? 'calculadora' : target === 'entrar' ? (sub === 'nutri' ? 'entrar/nutri' : 'entrar') : target;
+    document.querySelectorAll('section.page').forEach(s => s.classList.toggle('active', s.id === target));
+    document.querySelectorAll('.nav-links a, .nav-cta a').forEach(a => {
+      const on = a.getAttribute('href') === '#' + navTarget;
+      a.classList.toggle('active', on);
+      on ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current');
+    });
+    if (target === 'resultado') renderResult();
+    if (target === 'nutricionistas') renderNutris();
+    if (target === 'entrar') renderLogin(sub === 'nutri' ? 'nutri' : 'gestante');
+    window.scrollTo(0, 0);
+  }
+  window.addEventListener('hashchange', render);
+
+  // Menu do celular
+  function setMenu(open) {
+    $('#site > header').classList.toggle('open', open);
+    $('#menu-btn').setAttribute('aria-expanded', open);
+    $('#menu-btn').setAttribute('aria-label', open ? 'Fechar menu' : 'Abrir menu');
+  }
+  $('#menu-btn').addEventListener('click', () => setMenu(!$('#site > header').classList.contains('open')));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setMenu(false); });
+
+  /* ---------- Conteúdo fixo ---------- */
+  $('#scale').innerHTML = Object.values(IOM).map(c => {
+    const [a, b] = c.total;
+    return `<div class="scale-row"><span>${c.label}<small>${c.imc}</small></span>
+      <div class="bar"><i style="left:${a / 20 * 100}%; width:${(b - a) / 20 * 100}%">${kg(a)} a ${kg(b)}</i></div></div>`;
+  }).join('');
+  const faqHTML = FAQ.map(([q, a]) => `<details><summary>${q}</summary><p>${a}</p></details>`).join('');
+  $('#faq-home').innerHTML = faqHTML;
+  $('#faq-saude').innerHTML = faqHTML;
+  $('#tips').innerHTML = TIPS.map(t => `<li><h3>${t[0]}</h3><p>${t[1]}</p></li>`).join('');
+
+  /* ---------- Calculadora ---------- */
+  $('#calc-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const p = {
+      nome: $('#f-nome').value.trim() || 'Gestante',
+      altura: parseFloat($('#f-altura').value),
+      pre: parseFloat($('#f-pre').value),
+      atual: parseFloat($('#f-atual').value),
+      semana: parseInt($('#f-semana').value, 10)
+    };
+    const err = $('#calc-error');
+    if (!(p.altura >= 130 && p.altura <= 210)) return err.textContent = 'Informe a altura em centímetros, entre 130 e 210.';
+    if (!(p.pre >= 35 && p.pre <= 250)) return err.textContent = 'Informe o peso de antes da gestação em kg, entre 35 e 250.';
+    if (!(p.atual >= 35 && p.atual <= 250)) return err.textContent = 'Informe o peso atual em kg, entre 35 e 250.';
+    if (!(p.semana >= 1 && p.semana <= 42)) return err.textContent = 'Informe a semana gestacional, entre 1 e 42.';
+    err.textContent = '';
+    localStorage.setItem('vg-patient', JSON.stringify(p));
+    // Envia para o painel das nutricionistas; o token permite criar a conta a partir deste cálculo
+    fetch(API + 'pacientes.php', post(p))
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && d.id) { localStorage.setItem('vg-patient', JSON.stringify({ ...p, id: d.id, token: d.token })); if (location.hash === '#resultado') renderResult(); } })
+      .catch(() => {});
+    go('resultado');
+  });
+
+  // Curva de ganho no estilo da caderneta da gestante, com os trimestres marcados.
+  // hist: pesagens anteriores [{ semana, ganho }] desenhadas como uma linha até o ponto atual
+  // compact: versão mais estreita, para cards pequenos e celular
+  function chartSVG(cat, week, gain, status, hist = [], compact = false) {
+    const small = compact || window.innerWidth < 600;
+    const W = small ? 400 : 760, H = small ? 300 : 330, L = 50, R = 20, T = 34, B = 40;
+    const gains = hist.map(h => h.ganho).concat(gain);
+    const maxW = 40, maxG = Math.max(IOM[cat].total[1] + 2, Math.max(...gains) + 3);
+    const minG = Math.min(-2, Math.min(...gains) - 1);
+    const x = w => L + (w / maxW) * (W - L - R);
+    const y = g => T + (1 - (g - minG) / (maxG - minG)) * (H - T - B);
+    let upper = '', lower = '';
+    for (let w = 0; w <= maxW; w++) {
+      const [mn, mx] = expectedRange(cat, w);
+      upper += `${x(w)},${y(mx)} `;
+      lower = `${x(w)},${y(mn)} ` + lower;
+    }
+    let grid = '';
+    [[0, 13, '1º'], [13, 27, '2º'], [27, 40, '3º']].forEach(([a, b, t], i) => {
+      if (i % 2) grid += `<rect x="${x(a)}" y="${T}" width="${x(b) - x(a)}" height="${H - T - B}" fill="#FFF5F6"/>`;
+      grid += `<text x="${(x(a) + x(b)) / 2}" y="${T - 12}" font-size="13" fill="#6B5F64" text-anchor="middle">${t} ${small ? 'tri' : 'trimestre'}</text>`;
+    });
+    for (let w = 0; w <= 40; w += small ? 10 : 5) grid += `<text x="${x(w)}" y="${H - 14}" font-size="12" fill="#6B5F64" text-anchor="middle">${w}</text>`;
+    grid += `<text x="${W - R}" y="${H - 1}" font-size="12" fill="#6B5F64" text-anchor="end">semanas</text>`;
+    for (let g = Math.ceil(minG / 5) * 5; g <= maxG; g += 5) grid += `<line x1="${L}" x2="${W - R}" y1="${y(g)}" y2="${y(g)}" stroke="${g === 0 ? '#C9B9BE' : '#F3E3E6'}"/><text x="${L - 10}" y="${y(g) + 4}" font-size="12" fill="#6B5F64" text-anchor="end">${g} kg</text>`;
+    const cx = x(Math.min(week, 40)), cy = y(gain);
+    const color = status === 'ok' ? '#2F6FA8' : '#B84C65';
+    const flip = cx > W - (small ? 120 : 170);
+    const [eMin, eMax] = expectedRange(cat, week);
+    const path = hist.length ? [...hist.map(h => [x(h.semana), y(h.ganho)]), [cx, cy]] : [];
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Gráfico: na semana ${week} o ganho é de ${fmt(gain)} kg; a faixa recomendada é de ${fmt(Math.max(eMin, 0))} a ${fmt(eMax)} kg">
+      ${grid}
+      <polygon points="${upper}${lower}" fill="#C6E6FF" fill-opacity=".75" stroke="#2F6FA8" stroke-width="1.5" stroke-linejoin="round"/>
+      <line x1="${cx}" x2="${cx}" y1="${T}" y2="${H - B}" stroke="${color}" stroke-dasharray="4 4"/>
+      ${path.length ? `<polyline points="${path.map(p => p.join(',')).join(' ')}" fill="none" stroke="#231C1F" stroke-width="1.6" stroke-linejoin="round"/>` + path.slice(0, -1).map(([px, py]) => `<circle cx="${px}" cy="${py}" r="4" fill="#fff" stroke="#231C1F" stroke-width="1.6"/>`).join('') : ''}
+      <circle cx="${cx}" cy="${cy}" r="9" fill="${color}" stroke="#fff" stroke-width="3"/>
+      <text x="${flip ? cx - 14 : cx + 14}" y="${cy - 12}" font-size="14" font-weight="700" fill="#231C1F" text-anchor="${flip ? 'end' : 'start'}">${fmt(gain)} kg</text>
+    </svg>`;
+  }
+
+  function chartLegend(cat, status, hist) {
+    return `<div class="legend"><span><i style="background:#C6E6FF;border:1.5px solid #2F6FA8"></i>Faixa recomendada para ${IOM[cat].label.toLowerCase()} (IOM, 2009)</span>${hist ? '<span><i style="background:#fff;border:1.6px solid #231C1F;border-radius:50%"></i>Pesagens anteriores</span>' : ''}<span><i style="background:${status === 'ok' ? '#2F6FA8' : '#B84C65'};border-radius:50%"></i>Hoje</span></div>`;
+  }
+
+  const SCENARIOS = {
+    ok: { label: 'Adequado', rec: 'Parabéns pelo cuidado até aqui! Manter hábitos alimentares equilibrados vai ajudar a manter essa evolução saudável ao longo dos próximos trimestres.' },
+    low: { label: 'Baixo peso', rec: 'Seu ganho de peso está abaixo do esperado para a sua semana. Recomendamos uma avaliação prioritária com um nutricionista. Separamos abaixo profissionais especializados em gestação perto de você.' },
+    high: { label: 'Excesso de peso', rec: 'Seu ganho de peso está acima do esperado para a sua semana. Recomendamos uma avaliação prioritária com um nutricionista. Separamos abaixo profissionais especializados em gestação perto de você.' }
+  };
+
+  const silhouette = `<svg width="64" height="96" viewBox="0 0 64 96" aria-hidden="true" fill="none" stroke="#231C1F" stroke-width="2" stroke-linecap="round"><circle cx="30" cy="12" r="8"/><path d="M26 22c-6 6-8 14-6 22 2 6 6 8 6 14 0 8-6 14-4 24M34 22c4 4 4 10 2 14 10 2 16 10 14 20-2 8-10 10-16 10M34 66c0 8 4 14 2 24"/><path d="M40 52c-2-2-5-1-5 1 0 3 5 5 5 5s5-2 5-5c0-2-3-3-5-1z" fill="#231C1F" stroke="none"/></svg>`;
+
+  function signupCard(p) {
+    if (me || !p.id || !p.token) return '';
+    return `<div class="box signup no-print">
+      <div>
+        <h2>Acompanhe a sua gestação</h2>
+        <p class="muted" style="margin:0">Crie a sua conta grátis para registrar o peso a cada consulta, pedir consulta e receber o plano alimentar da sua nutricionista.</p>
+      </div>
+      <form id="signup-form" novalidate>
+        <div class="field full"><label for="s-nome">Seu nome</label><input id="s-nome" type="text" autocomplete="name" value="${p.nome === 'Gestante' ? '' : escapeHTML(p.nome)}"></div>
+        <div class="field"><label for="s-email">E-mail</label><input id="s-email" type="email" autocomplete="email"></div>
+        <div class="field"><label for="s-senha">Senha <span class="hint">(mín. 6)</span></label><input id="s-senha" type="password" autocomplete="new-password"></div>
+        <div class="error full" role="alert" id="signup-error" style="margin:0"></div>
+        <button class="btn btn-berry full" type="submit">Criar minha conta</button>
+      </form>
+    </div>`;
+  }
+
+  function bindSignup(p) {
+    const f = $('#signup-form');
+    if (!f) return;
+    f.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const err = $('#signup-error');
+      const nome = $('#s-nome').value.trim(), email = $('#s-email').value.trim(), senha = $('#s-senha').value;
+      if (!/^\S+@\S+\.\S+$/.test(email)) return err.textContent = 'Informe um e-mail válido.';
+      if (senha.length < 6) return err.textContent = 'A senha precisa ter pelo menos 6 caracteres.';
+      err.textContent = '';
+      f.querySelector('button').disabled = true;
+      try {
+        me = await api('conta.php', post({ paciente_id: p.id, token: p.token, nome, email, senha }));
+        localStorage.setItem('vg-patient', JSON.stringify({ ...p, token: undefined }));
+        toast('Conta criada. Bem-vinda ao VitaGesta!');
+        go('app/inicio');
+      } catch (ex) {
+        err.textContent = ex.message + '.';
+        f.querySelector('button').disabled = false;
+      }
+    });
+  }
+
+  function renderResult() {
+    const p = JSON.parse(localStorage.getItem('vg-patient') || 'null');
+    const box = $('#result-content');
+    if (!p) { box.innerHTML = `<div class="panel"><h1 class="title-dot" style="font-size:2.4rem">Você ainda não fez o cálculo</h1><p class="lead">Preencha o IMC gestacional com os dados do pré-natal para ver o seu resultado.</p><button class="btn btn-primary" onclick="go('calculadora')">Calcular meu IMC gestacional</button></div>`; return; }
+    const r = evaluate(p);
+    const s = SCENARIOS[r.status];
+    const priority = r.status !== 'ok';
+    const order = ['low', 'ok', 'high'];
+    const extra = priority
+      ? `<h2 style="margin-top:36px">Atendimento prioritário</h2>
+         <p class="muted">Os profissionais mais próximos de você, todos com experiência em gestação.</p>
+         <ul class="nutri-list">${[...NUTRIS].sort((a, b) => a.dist - b.dist).slice(0, 3).map(n => nutriCard(n, true)).join('')}</ul>
+         <div class="actions"><button class="btn btn-ghost" onclick="go('nutricionistas')">Ver todos os profissionais</button></div>`
+      : `<div class="center" style="margin-top:8px"><button class="btn btn-primary" style="min-width:320px" onclick="go('nutricionistas')">Falar com profissional especializado</button></div>`;
+    box.innerHTML = `
+      <button class="back" onclick="go('calculadora')">Voltar</button>
+      <h1 style="font-size:clamp(2.2rem,4.4vw,3.2rem)">${p.nome === 'Gestante' ? 'Seu resultado' : escapeHTML(p.nome) + ', este é o seu resultado'}</h1>
+      <div class="result-grid">
+        <div class="box imc-box">
+          <div>
+            <small>Seu IMC gestacional</small>
+            <div class="imc-value">${fmt(r.bmi)}</div>
+            <div><b>Faixa:</b> ${IOM[r.cat].label.toLowerCase()}</div>
+          </div>
+          ${silhouette}
+        </div>
+        <div class="box scenarios">
+          <h2>Os três cenários possíveis</h2>
+          <div class="scenario-row ${priority ? 'priority' : ''}">
+            ${order.map(k => `<div class="${k === r.status ? 'current' : ''}"><b>${SCENARIOS[k].label}</b><span>${k === r.status ? 'Sua classificação' : k === 'ok' ? 'Orientações' : 'Prioridade'}</span></div>`).join('')}
+          </div>
+          <dl class="facts">
+            <div><dt>Você ganhou</dt><dd>${fmt(r.gain)} kg</dd></div>
+            <div><dt>Esperado na ${p.semana}ª semana</dt><dd>${fmt(Math.max(r.min, 0))} a ${fmt(r.max)} kg</dd></div>
+            <div><dt>Até o parto</dt><dd>${kg(IOM[r.cat].total[0])} a ${kg(IOM[r.cat].total[1])} kg</dd></div>
+          </dl>
+        </div>
+      </div>
+      <div class="next-grid">
+        <div class="box"><h3>Recomendações e próximos passos</h3><p>${s.rec}</p></div>
+        <div class="box"><h3>Quer entender mais sobre o seu momento?</h3><p>Acesse os conteúdos da aba <a href="#saude"><b>Saúde e Nutrição</b></a> ou entre em contato com um dos nossos profissionais para um atendimento individualizado.</p></div>
+      </div>
+      ${signupCard(p)}
+      <div class="box chart">
+        <h2>Seu ganho de peso na curva recomendada</h2>
+        ${chartSVG(r.cat, p.semana, r.gain, r.status)}
+        ${chartLegend(r.cat, r.status, false)}
+      </div>
+      ${extra}
+      <p class="disclaimer" style="margin-top:28px">Esta ferramenta é educativa e não substitui o acompanhamento profissional.</p>`;
+    bindSignup(p);
+  }
+
+  /* ---------- Nutricionistas (lista pública) ---------- */
+  // Iniciais sem o título e sem conectivos como "de"
+  function initials(n) { return n.replace(/^Dra?\.\s*/, '').split(' ').filter(w => w[0] !== w[0].toLowerCase()).map(w => w[0]).slice(0, 2).join(''); }
+
+  function nutriCard(n, priority) {
+    return `<li class="nutri">
+      <div class="avatar" aria-hidden="true">${initials(n.nome)}</div>
+      <div>
+        <h3>${n.nome}</h3>
+        <div class="meta">${n.bairro}, a ${fmt(n.dist)} km. ${n.crn}</div>
+        <div class="meta"><span class="rating">★ ${fmt(n.nota)}</span> em ${n.aval} avaliações</div>
+        <div class="tags">${priority ? '<span class="tag priority">Atendimento prioritário</span>' : ''}${n.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
+      </div>
+      <div class="nutri-side">
+        <div class="price">R$ ${n.preco} <span>a consulta</span></div>
+        <button class="btn btn-berry btn-sm" onclick="pedirConsulta('${n.usuario}')">Pedir consulta</button>
+      </div>
+    </li>`;
+  }
+
+  let sortKey = 'dist';
+  function renderNutris() {
+    const list = [...NUTRIS].sort((a, b) => sortKey === 'dist' ? a.dist - b.dist : b.nota - a.nota);
+    $('#nutri-list').innerHTML = list.map(n => nutriCard(n, false)).join('');
+    document.querySelectorAll('#sort button').forEach(b => b.setAttribute('aria-pressed', b.dataset.sort === sortKey));
+  }
+  document.querySelectorAll('#sort button').forEach(b => b.addEventListener('click', () => { sortKey = b.dataset.sort; renderNutris(); }));
+
+  async function pedirConsulta(usuario) {
+    if (!me || me.tipo !== 'gestante') {
+      toast('Entre na sua conta de gestante para pedir consulta');
+      return go('entrar');
+    }
+    try {
+      const d = await api('consultas.php', post({ nutricionista: usuario }));
+      toast('Pedido enviado para ' + d.nutricionista + '. Você recebe a data quando ela confirmar.');
+      if (document.body.dataset.mode === 'app') render();
+    } catch (ex) { toast(ex.message); }
+  }
+
+  /* ---------- Login ---------- */
+  let loginTipo = 'gestante';
+  function renderLogin(tipo) {
+    loginTipo = tipo;
+    document.querySelectorAll('#entrar .seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.tipo === tipo));
+    const nutri = tipo === 'nutri';
+    $('#login-label').textContent = nutri ? 'Usuário' : 'E-mail';
+    $('#login-usuario').setAttribute('autocomplete', nutri ? 'username' : 'email');
+    $('#login-usuario').setAttribute('type', nutri ? 'text' : 'email');
+    $('#auth-sub').textContent = nutri ? 'Acesse o painel com as suas pacientes, a agenda e os planos alimentares.' : 'Acompanhe o seu peso, as suas consultas e o seu plano alimentar.';
+    $('#auth-help').innerHTML = nutri
+      ? 'Ainda não atende pelo VitaGesta? <a href="#planos">Conheça os planos para nutricionistas</a>.'
+      : 'Ainda não tem conta? <a href="#calculadora">Faça o IMC gestacional</a> e crie a sua conta na tela do resultado.';
+    $('#login-error').textContent = '';
+  }
+  document.querySelectorAll('#entrar .seg button').forEach(b => b.addEventListener('click', () => {
+    history.replaceState(null, '', b.dataset.tipo === 'nutri' ? '#entrar/nutri' : '#entrar');
+    renderLogin(b.dataset.tipo);
+    $('#login-usuario').focus();
+  }));
+  $('#login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const err = $('#login-error');
+    const usuario = $('#login-usuario').value.trim(), senha = $('#login-senha').value;
+    if (!usuario || !senha) return err.textContent = loginTipo === 'nutri' ? 'Preencha o usuário e a senha.' : 'Preencha o e-mail e a senha.';
+    err.textContent = '';
+    const btn = e.target.querySelector('button'); btn.disabled = true;
+    btn.textContent = 'Entrando…';
+    loading(true);
+    const r = await fetch(API + 'login.php', post({ tipo: loginTipo, usuario, senha })).catch(() => null);
+    loading(false);
+    btn.disabled = false; btn.textContent = 'Entrar';
+    if (!r) return err.textContent = 'Sem conexão com o servidor. Abra o site pelo endereço publicado.';
+    if (r.status === 401) { $('#login-senha').value = ''; return err.textContent = (loginTipo === 'nutri' ? 'Usuário' : 'E-mail') + ' ou senha incorretos. Confira e tente de novo.'; }
+    if (!r.ok) return err.textContent = 'O servidor não respondeu. Tente de novo em instantes.';
+    me = await r.json();
+    $('#login-senha').value = '';
+    go('app');
+  });
+
+  /* ---------- Área logada ---------- */
+  const ICONS = {
+    grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+    users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.9.7 3.1 2.4 3.5 5.2"/>',
+    calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+    chart: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',
+    plate: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+    doc: '<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/>',
+    live: '<circle cx="12" cy="12" r="2.5"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14"/>',
+    phone: '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>'
+  };
+  const icon = (k) => `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k]}</svg>`;
+
+  const MENUS = {
+    nutri: [['visao', 'Visão geral', 'grid'], ['pacientes', 'Pacientes', 'users'], ['agenda', 'Agenda', 'calendar']],
+    gestante: [['inicio', 'Início', 'grid'], ['peso', 'Meu peso', 'chart'], ['plano', 'Plano alimentar', 'plate'], ['consultas', 'Consultas', 'calendar'], ['relatorio', 'Relatório', 'doc']]
+  };
+
+  function shortName(nome) { return nome.split(' ').slice(0, nome.startsWith('Dr') ? 2 : 1).join(' '); }
+
+  function fmtDataHora(s) {
+    const d = new Date(s.replace(' ', 'T'));
+    return d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }) + ', às ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  }
+  function dateChip(s) {
+    const d = new Date(s.replace(' ', 'T'));
+    return `<span class="date-chip"><b>${d.getDate()}</b><small>${d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}</small></span>`;
+  }
+  const isFuture = (s) => s && new Date(s.replace(' ', 'T')) >= new Date(new Date().toDateString());
+
+  async function renderApp(sub, arg) {
+    const menu = MENUS[me.tipo];
+    const page = menu.some(m => m[0] === sub) ? sub : menu[0][0];
+    $('#side-label').textContent = me.tipo === 'nutri' ? 'Painel da nutricionista' : 'Minha gestação';
+    $('#side-nav').innerHTML = menu.map(([k, label, ic]) => `<a href="#app/${k}" class="${k === page ? 'active' : ''}" ${k === page ? 'aria-current="page"' : ''}>${icon(ic)}${label}<span class="count" id="count-${k}" hidden></span></a>`).join('')
+      + (me.tipo === 'gestante' ? `<a href="#nutricionistas">${icon('search')}Encontrar profissional</a>` : `<a href="#ao-vivo">${icon('live')}Painel ao vivo</a>`)
+      + `<a href="#" class="js-install" hidden onclick="instalar(event)">${icon('phone')}Instalar o app</a>`;
+    showInstall();
+    $('#me-avatar').textContent = initials(me.nome);
+    $('#me-nome').textContent = shortName(me.nome);
+    $('#me-tipo').textContent = me.tipo === 'nutri' ? 'Nutricionista' : 'Gestante';
+    const main = $('#app-main');
+    // O esqueleto só aparece se os dados demorarem, para não piscar quando a resposta é rápida
+    const skTimer = setTimeout(() => { main.innerHTML = skeleton(); }, 150);
+    try {
+      const views = { visao: nutriVisao, pacientes: nutriPacientes, agenda: nutriAgenda, inicio: gInicio, peso: gPeso, plano: gPlano, consultas: gConsultas, relatorio: gRelatorio };
+      await views[page](main, arg);
+    } catch (ex) {
+      main.innerHTML = `<div class="card"><h2>Não foi possível carregar esta página</h2><p class="muted">${escapeHTML(ex.message)}</p><button class="btn btn-ghost btn-sm" onclick="render()">Tentar de novo</button></div>`;
+    } finally {
+      clearTimeout(skTimer);
+    }
+    main.classList.remove('fade-in'); void main.offsetWidth; main.classList.add('fade-in');
+  }
+
+  function skeleton() {
+    const card = (h) => `<div class="card"><div class="sk sk-line" style="width:40%"></div><div class="sk" style="height:${h}px;margin-top:16px"></div></div>`;
+    return `<div class="app-top"><div style="flex:1"><div class="sk" style="height:34px;width:min(320px,70%)"></div><div class="sk sk-line" style="width:min(240px,50%)"></div></div></div>
+      <div class="kpis">${'<div class="kpi"><div class="sk sk-line" style="width:60%"></div><div class="sk" style="height:32px;width:45%;margin-top:12px"></div></div>'.repeat(4)}</div>
+      <div class="grid-main">${card(260)}<div class="stack">${card(70)}${card(70)}</div></div>`;
+  }
+
+  // Barra fina no topo enquanto alguma chamada ao servidor está em andamento
+  let pending = 0;
+  function loading(on) {
+    const t = $('#topbar');
+    if (on) {
+      if (pending++ === 0) { t.className = ''; void t.offsetWidth; t.className = 'on'; }
+    } else if (--pending <= 0) {
+      pending = 0;
+      t.className = 'done';
+    }
+  }
+
+  function setCount(k, n) {
+    const el = $('#count-' + k);
+    if (el) { el.textContent = n; el.hidden = !n; }
+  }
+
+  /* ----- Nutricionista ----- */
+  async function nutriData() {
+    const [pts, cons] = await Promise.all([api('pacientes.php'), api('consultas.php')]);
+    pts.forEach(p => p.r = evaluate(p));
+    setCount('agenda', cons.filter(c => c.status === 'pedida').length);
+    return { pts, cons };
+  }
+
+  function statusTag(r) { return `<span class="tag ${r.status === 'ok' ? 'ok' : 'warn'}">${r.status === 'ok' ? 'Adequado' : r.status === 'low' ? 'Abaixo' : 'Acima'}</span>`; }
+
+  async function nutriVisao(main) {
+    const { pts, cons } = await nutriData();
+    const minhas = pts.filter(p => p.minha);
+    const prioridade = pts.filter(p => (p.minha || p.nova) && p.r.status !== 'ok');
+    const novas = pts.filter(p => p.nova);
+    const pedidos = cons.filter(c => c.status === 'pedida');
+    const proximas = cons.filter(c => c.status === 'confirmada' && isFuture(c.data_hora)).sort((a, b) => a.data_hora.localeCompare(b.data_hora));
+    const hoje = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+    main.innerHTML = `
+      <div class="app-top"><div><h1>Olá, ${escapeHTML(shortName(me.nome))}</h1><p>${hoje.charAt(0).toUpperCase() + hoje.slice(1)}</p></div>
+        <a class="btn btn-ghost btn-sm" href="#app/pacientes">Ver pacientes</a></div>
+      <div class="kpis">
+        <div class="kpi"><small>Minhas pacientes</small><b>${minhas.length}</b></div>
+        <div class="kpi alert"><small>Atendimento prioritário</small><b>${prioridade.length}</b></div>
+        <div class="kpi"><small>Novas pelo site</small><b>${novas.length}</b></div>
+        <div class="kpi alert"><small>Pedidos de consulta</small><b>${pedidos.length}</b></div>
+      </div>
+      <div class="grid-main">
+        <div class="card"><h2>Precisam de atenção <a href="#app/pacientes">Todas</a></h2>
+          ${prioridade.length ? `<ul class="rows">${prioridade.map(p => `<li><span class="dot warn"></span><div class="grow"><b>${escapeHTML(p.nome)}</b><small>${p.semana}ª semana, ${STATUS_TEXT[p.r.status]} (${fmt(p.r.gain)} kg, esperado ${fmt(Math.max(p.r.min, 0))} a ${fmt(p.r.max)})</small></div>${p.nova ? '<span class="tag">Nova pelo site</span>' : ''}<a class="btn btn-ghost btn-sm" href="#app/pacientes/${p.id}">Abrir</a></li>`).join('')}</ul>` : '<p class="empty">Nenhuma paciente com ganho fora da faixa. Bom sinal!</p>'}
+        </div>
+        <div class="stack">
+          <div class="card"><h2>Próximas consultas <a href="#app/agenda">Agenda</a></h2>
+            ${proximas.length ? `<ul class="rows">${proximas.slice(0, 4).map(c => `<li>${dateChip(c.data_hora)}<div class="grow"><b>${escapeHTML(c.paciente)}</b><small>${fmtDataHora(c.data_hora)}</small></div></li>`).join('')}</ul>` : '<p class="empty">Nenhuma consulta marcada.</p>'}
+          </div>
+          <div class="card"><h2>Pedidos aguardando</h2>
+            ${pedidos.length ? `<ul class="rows">${pedidos.map(c => `<li><div class="grow"><b>${escapeHTML(c.paciente)}</b><small>${c.semana}ª semana</small></div><a class="btn btn-berry btn-sm" href="#app/agenda">Responder</a></li>`).join('')}</ul>` : '<p class="empty">Nenhum pedido novo.</p>'}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  let pacFiltro = 'todas';
+  async function nutriPacientes(main, arg) {
+    const { pts } = await nutriData();
+    const filtros = { todas: ['Todas', () => true], minhas: ['Minhas', p => p.minha], prioridade: ['Prioridade', p => p.r.status !== 'ok'], novas: ['Novas pelo site', p => p.nova] };
+    const lista = pts.filter(filtros[pacFiltro][1]);
+    const sel = pts.find(p => p.id === +arg) || lista[0];
+    main.innerHTML = `
+      <div class="app-top"><div><h1>Pacientes</h1><p>${pts.length} no total, ${pts.filter(p => p.r.status !== 'ok').length} com atendimento prioritário</p></div>
+        <div class="seg" role="group" aria-label="Filtrar pacientes">${Object.entries(filtros).map(([k, [l]]) => `<button type="button" aria-pressed="${k === pacFiltro}" onclick="pacFiltro='${k}';render()">${l}</button>`).join('')}</div></div>
+      <div class="pat-layout">
+        <div class="pat-list">${lista.length ? lista.map(p => `<a class="patient ${sel && p.id === sel.id ? 'active' : ''}" href="#app/pacientes/${p.id}">
+          <b><span class="dot ${p.r.status === 'ok' ? 'ok' : 'warn'}"></span>${escapeHTML(p.nome)}</b>
+          <small>${p.semana}ª semana, ${STATUS_TEXT[p.r.status]}</small>
+          ${p.nova ? '<br><span class="tag" style="margin-top:4px">Nova pelo site</span>' : ''}</a>`).join('') : '<p class="empty" style="padding:12px">Nenhuma paciente neste filtro.</p>'}</div>
+        <div id="pat-detail">${sel ? '<div class="card"><div class="sk" style="height:30px;width:45%"></div><div class="sk sk-line" style="width:30%"></div><div class="sk" style="height:120px;margin-top:20px"></div></div>' : '<div class="card"><p class="empty">Quando uma gestante fizer o cálculo no site, ela aparece aqui.</p></div>'}</div>
+      </div>`;
+    if (sel) await renderPaciente(sel);
+  }
+
+  async function renderPaciente(p) {
+    const { pesagens, plano } = await api('pacientes.php?id=' + p.id);
+    const r = p.r;
+    const hist = pesagens.filter(w => w.semana < p.semana).map(w => ({ semana: w.semana, ganho: w.peso - p.pre }));
+    const saved = plano ? plano.refeicoes : {};
+    $('#pat-detail').innerHTML = `
+      <div class="stack">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start">
+            <div><h2 style="font:450 1.9rem var(--display);margin:0 0 4px">${escapeHTML(p.nome)}</h2>
+              <div class="tags" style="margin:0">${statusTag(r)}<span class="tag">${IOM[r.cat].label}</span>${p.nova ? '<span class="tag">Nova pelo site</span>' : ''}${p.conta ? '<span class="tag">Tem conta no app</span>' : ''}</div></div>
+            ${p.nova ? `<button class="btn btn-berry btn-sm no-print" onclick="assumir(${p.id})">Assumir paciente</button>` : ''}
+          </div>
+          <div class="pdata">
+            <div><small>Altura</small><b>${p.altura} cm</b></div>
+            <div><small>Peso pré-gestacional</small><b>${fmt(p.pre)} kg</b></div>
+            <div><small>Peso atual</small><b>${fmt(p.atual)} kg</b></div>
+            <div><small>Semana</small><b>${p.semana}ª</b></div>
+            <div><small>IMC pré-gestacional</small><b>${fmt(r.bmi)}</b></div>
+            <div><small>Ganho até agora</small><b>${fmt(r.gain)} kg</b></div>
+            <div><small>Faixa esperada</small><b>${fmt(Math.max(r.min, 0))} a ${fmt(r.max)} kg</b></div>
+            <div><small>Meta até o parto</small><b>${kg(IOM[r.cat].total[0])} a ${kg(IOM[r.cat].total[1])} kg</b></div>
+          </div>
+        </div>
+        <div class="card chart" style="margin:0"><h2>Curva de ganho de peso</h2>${chartSVG(r.cat, p.semana, r.gain, r.status, hist)}${chartLegend(r.cat, r.status, hist.length > 0)}</div>
+        <div class="card">
+          <h2>Plano alimentar ${plano ? `<small class="muted" style="font-weight:400">atualizado em ${new Date(plano.atualizado_em.replace(' ', 'T')).toLocaleDateString('pt-BR')}</small>` : ''}</h2>
+          ${MEALS.map(([k, label, hora]) => `<div class="meal"><label for="m-${k}">${label}<small>${hora}</small></label><textarea id="m-${k}" placeholder="Alimentos e porções">${escapeHTML(saved[k] || '')}</textarea></div>`).join('')}
+          <div class="actions no-print" style="margin-top:12px">
+            <button class="btn btn-berry" onclick="savePlan(${p.id})">Enviar plano à paciente</button>
+            <button class="btn btn-ghost" onclick="fillTemplate()">Usar modelo base</button>
+            <button class="btn btn-ghost" onclick="window.print()">Imprimir</button>
+          </div>
+          ${p.conta ? '' : '<p class="muted" style="margin:14px 0 0;font-size:.92rem">Esta paciente ainda não tem conta no app. O plano fica salvo e aparece para ela quando criar a conta.</p>'}
+        </div>
+      </div>`;
+  }
+
+  function fillTemplate() { MEALS.forEach(([k]) => { const el = $('#m-' + k); if (!el.value.trim()) el.value = TEMPLATE[k]; }); }
+
+  async function savePlan(id) {
+    const plan = {};
+    MEALS.forEach(([k]) => plan[k] = $('#m-' + k).value);
+    try {
+      await api('planos.php', post({ paciente_id: id, plano: plan }));
+      toast('Plano enviado à paciente');
+      render();
+    } catch (ex) { toast(ex.message); }
+  }
+
+  async function assumir(id) {
+    try {
+      await api('pacientes.php?acao=assumir', post({ id }));
+      toast('Paciente adicionada às suas pacientes');
+      render();
+    } catch (ex) { toast(ex.message); }
+  }
+
+  async function nutriAgenda(main) {
+    const { cons } = await nutriData();
+    const pedidos = cons.filter(c => c.status === 'pedida');
+    const proximas = cons.filter(c => c.status === 'confirmada' && isFuture(c.data_hora)).sort((a, b) => a.data_hora.localeCompare(b.data_hora));
+    const amanha = new Date(Date.now() + 86400000);
+    const sugestao = `${amanha.getFullYear()}-${String(amanha.getMonth() + 1).padStart(2, '0')}-${String(amanha.getDate()).padStart(2, '0')}T14:00`;
+    main.innerHTML = `
+      <div class="app-top"><div><h1>Agenda</h1><p>${pedidos.length ? pedidos.length + (pedidos.length > 1 ? ' pedidos aguardam' : ' pedido aguarda') + ' a sua resposta' : 'Nenhum pedido aguardando'}</p></div></div>
+      <div class="grid-2" style="align-items:start">
+        <div class="card"><h2>Pedidos de consulta</h2>
+          ${pedidos.length ? pedidos.map(c => `<div class="req">
+            <div><b>${escapeHTML(c.paciente)}</b><br><small class="muted">${c.semana}ª semana, pedido em ${new Date(c.criado_em.replace(' ', 'T')).toLocaleDateString('pt-BR')}</small>
+              <div style="margin-top:6px"><a href="#app/pacientes/${c.paciente_id}">Ver ficha</a></div></div>
+            <div class="inline-form" style="grid-column:1/-1">
+              <div class="field"><label for="dh-${c.id}">Data e horário</label><input id="dh-${c.id}" type="datetime-local" value="${sugestao}"></div>
+              <button class="btn btn-berry btn-sm" onclick="responder(${c.id}, 'confirmar')">Confirmar</button>
+              <button class="btn btn-ghost btn-sm" onclick="responder(${c.id}, 'recusar')">Recusar</button>
+            </div></div>`).join('') : '<p class="empty">Quando uma gestante pedir consulta pelo site, o pedido aparece aqui.</p>'}
+        </div>
+        <div class="card"><h2>Consultas confirmadas</h2>
+          ${proximas.length ? `<ul class="rows">${proximas.map(c => `<li>${dateChip(c.data_hora)}<div class="grow"><b>${escapeHTML(c.paciente)}</b><small>${fmtDataHora(c.data_hora)}</small></div><a class="btn btn-ghost btn-sm" href="#app/pacientes/${c.paciente_id}">Ficha</a></li>`).join('')}</ul>` : '<p class="empty">Nenhuma consulta marcada.</p>'}
+        </div>
+      </div>`;
+  }
+
+  async function responder(id, acao) {
+    const data_hora = acao === 'confirmar' ? $('#dh-' + id).value : null;
+    if (acao === 'confirmar' && !data_hora) return toast('Escolha a data e o horário da consulta');
+    try {
+      await api('consultas.php', post({ id, acao, data_hora }));
+      toast(acao === 'confirmar' ? 'Consulta confirmada. A gestante já vê a data na conta dela.' : 'Pedido recusado');
+      render();
+    } catch (ex) { toast(ex.message); }
+  }
+
+  /* ----- Gestante ----- */
+  async function gData() {
+    const [g, cons] = await Promise.all([api('gestante.php'), api('consultas.php')]);
+    g.r = evaluate(g);
+    g.hist = g.pesagens.filter(w => w.semana < g.semana).map(w => ({ semana: w.semana, ganho: w.peso - g.pre }));
+    return { g, cons };
+  }
+
+  async function gInicio(main) {
+    const { g, cons } = await gData();
+    const r = g.r, priority = r.status !== 'ok';
+    const proxima = cons.filter(c => c.status === 'confirmada' && isFuture(c.data_hora)).sort((a, b) => a.data_hora.localeCompare(b.data_hora))[0];
+    const pedida = cons.find(c => c.status === 'pedida');
+    const faltam = Math.max(40 - g.semana, 0);
+    main.innerHTML = `
+      <div class="app-top"><div><h1>Olá, ${escapeHTML(shortName(g.nome))}</h1><p>Você está na ${g.semana}ª semana${faltam ? `, faltam cerca de ${faltam} semanas para o parto` : ''}.</p></div>
+        <a class="btn btn-berry btn-sm" href="#app/peso">Registrar pesagem</a></div>
+      <div class="verdict ${priority ? 'priority' : ''}"><b>${priority ? 'Seu ' + STATUS_TEXT[r.status] : 'Seu ganho de peso está adequado'}</b>
+        <p>${priority ? (g.nutricionista ? 'Converse com a ' + escapeHTML(g.nutricionista.nome) + ' na sua próxima consulta.' : 'Recomendamos uma avaliação prioritária com uma nutricionista.') : 'Continue com o pré-natal e com uma alimentação equilibrada.'}</p></div>
+      <div class="kpis">
+        <div class="kpi"><small>IMC antes da gestação</small><b>${fmt(r.bmi)}</b></div>
+        <div class="kpi ${priority ? 'alert' : ''}"><small>Você ganhou</small><b>${fmt(r.gain)} kg</b></div>
+        <div class="kpi"><small>Esperado na ${g.semana}ª semana</small><b>${fmt(Math.max(r.min, 0))} a ${fmt(r.max)}</b></div>
+        <div class="kpi"><small>Meta até o parto</small><b>${kg(IOM[r.cat].total[0])} a ${kg(IOM[r.cat].total[1])}</b></div>
+      </div>
+      <div class="grid-main">
+        <div class="card chart" style="margin:0"><h2>Sua curva <a href="#app/peso">Histórico</a></h2>${chartSVG(r.cat, g.semana, r.gain, r.status, g.hist, true)}${chartLegend(r.cat, r.status, g.hist.length > 0)}</div>
+        <div class="stack">
+          <div class="card"><h2>Sua nutricionista</h2>
+            ${g.nutricionista ? `<ul class="rows"><li><span class="avatar" style="width:44px;height:44px;font-size:1rem">${initials(g.nutricionista.nome)}</span><div class="grow"><b>${escapeHTML(g.nutricionista.nome)}</b><small>Acompanha a sua gestação</small></div></li></ul>`
+              : `<p class="empty" style="margin-bottom:12px">${pedida ? 'Seu pedido para a ' + escapeHTML(pedida.nutricionista) + ' está aguardando resposta.' : 'Você ainda não tem nutricionista.'}</p>${pedida ? '' : '<a class="btn btn-berry btn-sm" href="#app/consultas">Pedir consulta</a>'}`}
+          </div>
+          <div class="card"><h2>Próxima consulta</h2>
+            ${proxima ? `<ul class="rows"><li>${dateChip(proxima.data_hora)}<div class="grow"><b>${escapeHTML(proxima.nutricionista)}</b><small>${fmtDataHora(proxima.data_hora)}</small></div></li></ul>` : '<p class="empty">Nenhuma consulta marcada.</p>'}
+          </div>
+          <div class="card"><h2>Plano alimentar</h2>
+            ${g.plano ? `<p style="margin:0 0 12px">Sua nutricionista enviou o seu plano em ${new Date(g.plano.atualizado_em.replace(' ', 'T')).toLocaleDateString('pt-BR')}.</p><a class="btn btn-ghost btn-sm" href="#app/plano">Ver plano</a>` : '<p class="empty">O plano aparece aqui quando a sua nutricionista enviar.</p>'}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  async function gPeso(main) {
+    const { g } = await gData();
+    const r = g.r;
+    const rows = weightRows(g);
+    main.innerHTML = `
+      <div class="app-top"><div><h1>Meu peso</h1><p>Registre o peso de cada consulta do pré-natal para acompanhar a sua curva.</p></div></div>
+      <div class="grid-main">
+        <div class="stack">
+          <div class="card chart" style="margin:0"><h2>Sua curva</h2>${chartSVG(r.cat, g.semana, r.gain, r.status, g.hist, true)}${chartLegend(r.cat, r.status, g.hist.length > 0)}</div>
+          <div class="card"><h2>Histórico</h2>
+            <div style="overflow-x:auto"><table class="weights"><thead><tr><th>Semana</th><th>Peso</th><th>Ganho</th><th>Faixa esperada</th><th>Situação</th></tr></thead><tbody>${rows}</tbody></table></div>
+          </div>
+        </div>
+        <div class="card"><h2>Nova pesagem</h2>
+          <form id="peso-form" novalidate style="display:grid;gap:14px">
+            <div class="field"><label for="w-semana">Semana gestacional</label><input id="w-semana" type="number" inputmode="numeric" value="${Math.min(g.semana + 1, 42)}"></div>
+            <div class="field"><label for="w-peso">Peso (kg)</label><input id="w-peso" type="number" inputmode="decimal" step="0.1" placeholder="ex: ${kg(g.atual)}"></div>
+            <div class="error" role="alert" id="peso-error" style="margin:0"></div>
+            <button class="btn btn-berry" type="submit">Registrar pesagem</button>
+          </form>
+          <p class="muted" style="margin:16px 0 0;font-size:.92rem">Peso antes da gestação: ${fmt(g.pre)} kg. Altura: ${g.altura} cm.</p>
+        </div>
+      </div>`;
+    $('#peso-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const semana = parseInt($('#w-semana').value, 10), peso = parseFloat($('#w-peso').value);
+      if (!(semana >= 1 && semana <= 42)) return $('#peso-error').textContent = 'Informe a semana, entre 1 e 42.';
+      if (!(peso >= 35 && peso <= 250)) return $('#peso-error').textContent = 'Informe o peso em kg, entre 35 e 250.';
+      try {
+        await api('gestante.php', post({ semana, peso }));
+        toast('Pesagem registrada');
+        render();
+      } catch (ex) { $('#peso-error').textContent = ex.message + '.'; }
+    });
+  }
+
+  async function gPlano(main) {
+    const { g } = await gData();
+    main.innerHTML = `
+      <div class="app-top"><div><h1>Plano alimentar</h1><p>${g.plano ? `Enviado por ${escapeHTML(g.nutricionista ? g.nutricionista.nome : 'sua nutricionista')} em ${new Date(g.plano.atualizado_em.replace(' ', 'T')).toLocaleDateString('pt-BR')}.` : 'Ainda não há plano para você.'}</p></div>
+        ${g.plano ? '<button class="btn btn-ghost btn-sm no-print" onclick="window.print()">Imprimir</button>' : ''}</div>
+      <div class="card">${g.plano
+        ? MEALS.filter(([k]) => (g.plano.refeicoes[k] || '').trim()).map(([k, label, hora]) => `<div class="meal"><div class="when">${label}<small>${hora}</small></div><p>${escapeHTML(g.plano.refeicoes[k])}</p></div>`).join('')
+        : `<p class="empty">Quando a sua nutricionista enviar o plano, ele aparece aqui. ${g.nutricionista ? '' : 'Comece pedindo uma consulta.'}</p>${g.nutricionista ? '' : '<a class="btn btn-berry btn-sm" href="#app/consultas">Pedir consulta</a>'}`}
+      </div>
+      <p class="disclaimer" style="text-align:left;margin-top:16px">Siga as orientações da sua nutricionista e do seu pré-natal.</p>`;
+  }
+
+  async function gConsultas(main) {
+    const { cons } = await gData();
+    const label = { pedida: 'Aguardando resposta', confirmada: 'Confirmada', recusada: 'Recusada' };
+    main.innerHTML = `
+      <div class="app-top"><div><h1>Consultas</h1><p>Peça uma consulta e acompanhe a resposta da nutricionista.</p></div></div>
+      <div class="card" style="margin-bottom:20px"><h2>Minhas consultas</h2>
+        ${cons.length ? `<ul class="rows">${cons.map(c => `<li>${c.data_hora ? dateChip(c.data_hora) : '<span class="date-chip" style="background:var(--lilac-soft)"><b>?</b><small>data</small></span>'}<div class="grow"><b>${escapeHTML(c.nutricionista)}</b><small>${c.data_hora ? fmtDataHora(c.data_hora) : 'Pedido em ' + new Date(c.criado_em.replace(' ', 'T')).toLocaleDateString('pt-BR')}</small></div><span class="tag ${c.status === 'confirmada' ? 'ok' : c.status === 'recusada' ? 'warn' : ''}">${label[c.status]}</span></li>`).join('')}</ul>` : '<p class="empty">Você ainda não pediu nenhuma consulta.</p>'}
+      </div>
+      <h2 style="font:600 1.1rem var(--text);margin:28px 0 4px">Pedir consulta</h2>
+      <p class="muted" style="margin:0">Ordem por distância. Nenhum profissional paga para aparecer primeiro.</p>
+      <ul class="nutri-list">${[...NUTRIS].sort((a, b) => a.dist - b.dist).map(n => nutriCard(n, false)).join('')}</ul>`;
+  }
+
+  function weightRows(g) {
+    return [...g.pesagens].reverse().map(w => {
+      const ganho = w.peso - g.pre;
+      const [mn, mx] = expectedRange(g.r.cat, w.semana);
+      const lower = w.semana <= 13 ? Math.min(mn, -1) : mn;
+      const st = ganho < lower ? 'low' : ganho > mx ? 'high' : 'ok';
+      return `<tr><td>${w.semana}ª</td><td>${fmt(w.peso)} kg</td><td>${fmt(ganho)} kg</td><td>${fmt(Math.max(mn, 0))} a ${fmt(mx)} kg</td><td>${statusTag({ status: st })}</td></tr>`;
+    }).join('');
+  }
+
+  async function gRelatorio(main) {
+    const { g, cons } = await gData();
+    const r = g.r, priority = r.status !== 'ok';
+    const proxima = cons.filter(c => c.status === 'confirmada' && isFuture(c.data_hora)).sort((a, b) => a.data_hora.localeCompare(b.data_hora))[0];
+    const meals = g.plano ? MEALS.filter(([k]) => (g.plano.refeicoes[k] || '').trim()) : [];
+    main.innerHTML = `
+      <div class="app-top no-print"><div><h1>Relatório do pré-natal</h1><p>Imprima ou salve em PDF para mostrar ao seu médico na próxima consulta.</p><span class="premium-note">Recurso do plano Premium, liberado no protótipo</span></div>
+        <button class="btn btn-berry btn-sm" onclick="window.print()">Imprimir ou salvar em PDF</button></div>
+      <article class="report">
+        <div class="report-head">
+          <div><h2>Acompanhamento gestacional</h2><div class="muted">${escapeHTML(g.nome)}. Gerado em ${new Date().toLocaleDateString('pt-BR')}.</div></div>
+          <img src="img/logo.png" alt="VitaGesta" width="152" height="96">
+        </div>
+        <div class="verdict ${priority ? 'priority' : ''}"><b>${priority ? 'Ganho de peso ' + (r.status === 'low' ? 'abaixo' : 'acima') + ' do esperado para a semana' : 'Ganho de peso adequado para a semana'}</b>
+          <p>${g.semana}ª semana: ganho de ${fmt(r.gain)} kg, faixa recomendada de ${fmt(Math.max(r.min, 0))} a ${fmt(r.max)} kg.</p></div>
+        <h3>Dados</h3>
+        <div class="pdata">
+          <div><small>Altura</small><b>${g.altura} cm</b></div>
+          <div><small>Peso pré-gestacional</small><b>${fmt(g.pre)} kg</b></div>
+          <div><small>IMC pré-gestacional</small><b>${fmt(r.bmi)} (${IOM[r.cat].label.toLowerCase()})</b></div>
+          <div><small>Semana atual</small><b>${g.semana}ª</b></div>
+          <div><small>Peso atual</small><b>${fmt(g.atual)} kg</b></div>
+          <div><small>Ganho até agora</small><b>${fmt(r.gain)} kg</b></div>
+          <div><small>Faixa esperada hoje</small><b>${fmt(Math.max(r.min, 0))} a ${fmt(r.max)} kg</b></div>
+          <div><small>Meta até o parto</small><b>${kg(IOM[r.cat].total[0])} a ${kg(IOM[r.cat].total[1])} kg</b></div>
+        </div>
+        <h3>Curva de ganho de peso</h3>
+        <div class="chart" style="margin:0">${chartSVG(r.cat, g.semana, r.gain, r.status, g.hist)}${chartLegend(r.cat, r.status, g.hist.length > 0)}</div>
+        <h3>Pesagens</h3>
+        <table class="weights"><thead><tr><th>Semana</th><th>Peso</th><th>Ganho</th><th>Faixa esperada</th><th>Situação</th></tr></thead><tbody>${weightRows(g)}</tbody></table>
+        <h3>Acompanhamento nutricional</h3>
+        <p style="margin:0">${g.nutricionista ? `Nutricionista: ${escapeHTML(g.nutricionista.nome)}.` : 'Ainda sem nutricionista.'} ${proxima ? 'Próxima consulta: ' + fmtDataHora(proxima.data_hora) + '.' : ''}</p>
+        <h3>Plano alimentar</h3>
+        ${meals.length ? meals.map(([k, label, hora]) => `<div class="meal"><div class="when">${label}<small>${hora}</small></div><p>${escapeHTML(g.plano.refeicoes[k])}</p></div>`).join('') : '<p class="muted" style="margin:0">Nenhum plano enviado até agora.</p>'}
+        <h3>Anotações do pré-natal</h3>
+        <div class="notes"></div><div class="notes"></div><div class="notes"></div><div class="notes"></div>
+        <p class="disclaimer" style="text-align:left;margin-top:20px">Faixas calculadas com as recomendações do Institute of Medicine (IOM, 2009). Relatório educativo gerado pelo VitaGesta; não substitui a avaliação do médico ou do nutricionista.</p>
+      </article>`;
+  }
+
+  /* ---------- Painel ao vivo ---------- */
+  const LIVE_STATUS = [['low', 'Abaixo do esperado', '#B7791F'], ['ok', 'Adequado', '#2F6FA8'], ['high', 'Acima do esperado', '#B84C65']];
+  const LIVE_BAR = '#7E57A8'; // tom único para as barras de quantidade (trimestre e IMC)
+  let liveTimer = null, liveTotal = null;
+
+  function startLive() { if (!liveTimer) { pollLive(); liveTimer = setInterval(pollLive, 4000); } }
+  function stopLive() { clearInterval(liveTimer); liveTimer = null; liveTotal = null; }
+
+  // Sem a barra do topo aqui: o painel consulta o servidor a cada 4 s
+  async function pollLive() {
+    try {
+      const r = await fetch(API + 'stats.php');
+      if (!r.ok) throw new Error();
+      drawLive(await r.json());
+      $('#lv-pulse').textContent = 'Atualiza sozinho';
+    } catch { $('#lv-pulse').textContent = 'Sem conexão, tentando de novo'; }
+  }
+
+  function setBars(sel, rows, total) {
+    const el = $(sel);
+    if (!el.children.length) el.innerHTML = rows.map(([k, l]) => `<div class="hbar" data-k="${k}"><span>${l}</span><div class="track"><div class="fill"></div></div><output></output></div>`).join('');
+    rows.forEach(([k, l, n, c]) => {
+      const row = el.querySelector(`[data-k="${k}"]`), pct = total ? Math.round(n / total * 100) : 0;
+      const f = row.querySelector('.fill');
+      f.style.background = c;
+      f.style.width = pct + '%';
+      row.querySelector('output').innerHTML = `${n} <small>${pct}%</small>`;
+      row.title = `${l}: ${n} (${pct}%)`;
+    });
+  }
+
+  function ago(s) { return s < 60 ? `há ${Math.max(s, 1)} s` : s < 3600 ? `há ${Math.floor(s / 60)} min` : `há ${Math.floor(s / 3600)} h`; }
+
+  function drawLive(d) {
+    const novos = liveTotal === null ? 0 : Math.max(d.total - liveTotal, 0);
+    const num = $('#lv-total');
+    num.textContent = d.total;
+    if (novos) { num.classList.add('bump'); setTimeout(() => num.classList.remove('bump'), 1200); }
+    liveTotal = d.total;
+    $('#lv-contas').textContent = d.contas;
+    $('#lv-consultas').textContent = d.consultas;
+    $('#lv-semana').textContent = d.semana_media === null ? 'sem dados' : fmt(d.semana_media) + 'ª';
+    setBars('#lv-status', LIVE_STATUS.map(([k, l, c]) => [k, l, d.status[k], c]), d.total);
+    setBars('#lv-tri', [1, 2, 3].map(t => [t, t + 'º trimestre', d.trimestres[t], LIVE_BAR]), d.total);
+    setBars('#lv-cat', Object.entries(IOM).map(([k, c]) => [k, c.label, d.categorias[k], LIVE_BAR]), d.total);
+    const st = Object.fromEntries(LIVE_STATUS.map(([k, l, c]) => [k, [l, c]]));
+    $('#lv-feed').innerHTML = d.recentes.length
+      ? d.recentes.map((x, i) => `<li class="${i < novos ? 'new' : ''}"><i style="background:${st[x.status][1]}"></i><div><b>${x.semana}ª semana, ${st[x.status][0].toLowerCase()}</b><small>${x.trimestre}º trimestre, ${ago(x.idade)}</small></div></li>`).join('')
+      : '<li class="live-empty" style="grid-column:1/-1;background:none;padding:0">Ninguém fez o cálculo ainda. Aponte a câmera para o QR code e seja a primeira!</li>';
+  }
+
+  /* ---------- Instalar como app ---------- */
+  let installEvt = null;
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; showInstall(); });
+  window.addEventListener('appinstalled', () => { installEvt = null; showInstall(); toast('App instalado. Ele já está na sua tela inicial.'); });
+  function showInstall() {
+    const pode = !standalone() && (installEvt || isIOS);
+    document.querySelectorAll('.js-install').forEach(a => a.hidden = !pode);
+  }
+  async function instalar(e) {
+    e.preventDefault();
+    if (installEvt) { installEvt.prompt(); await installEvt.userChoice; installEvt = null; showInstall(); }
+    else if (isIOS) toast('No iPhone: toque em Compartilhar e depois em "Adicionar à Tela de Início"');
+  }
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+  showInstall();
+
+  /* ---------- Util ---------- */
+  function escapeHTML(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
+  let toastTimer;
+  function toast(msg) {
+    const t = $('#toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
+  }
+
+  // Abertura: mostra a tela de carregamento enquanto confere o login e as fontes (no mínimo 0,7 s, para não piscar)
+  const espera = (ms) => new Promise(r => setTimeout(r, ms));
+  Promise.all([loadMe(), espera(700), Promise.race([document.fonts.ready, espera(2000)])]).then(async () => {
+    await render();
+    $('#splash').classList.add('out');
+    setTimeout(() => $('#splash').remove(), 500);
+  });
+</script>
+</body>
+</html>
